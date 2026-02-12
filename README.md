@@ -1,10 +1,11 @@
 # AStarAlgorithm Project
+
 The A Star Algorithm (A* Algorithm) is a pathfinding and graph traversal algorithm used to find the shortest path between a start node and a goal node. It is commonly used by Google Maps and in many tower defense games.
+
 ## Week 1
-- talk about initial research of understanding (links to relevant sources)
-- talk about initial setup of grid (SS of code and terminal output)
-- talk about making project OO style (SS of code layout)
+
 ### Initial Research
+
 To begin the project, I started by looking at the GeeksforGeeks link that Michelle linked on moodle.
 - https://www.geeksforgeeks.org/dsa/a-search-algorithm/<br>
 
@@ -25,12 +26,22 @@ In simple terms, A* works by choosing the path that appears shortest overall bas
 To start coding, I created an OO (Object Oriented) C++ project which consisted of `main.cpp`, `AStarAlgorithm.cpp`, and `AStarAlgorithm.h`. I did this to follow the brief and to avoid using monolithic code and create a more modular project. In my header file, I included a header guard to avoid multiple `#include`s of my header file, which could cause redefinition errors. Including a header guard also just follows good modern C++ coding practices.<br>
 
 In my header file, within my header guard, I created a class called `AStarAlgorithm`. I will use this class to hold `public` and `private` member functions. I will use `private` for data to ensure data protection. I created a `void AStarGrid();` function declaration and in my `AStarAlgorithm.cpp` file, I will have the function definition.<br><br>
-<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/AStarAlgorithm.h-Initial-code.png" /><br><br>
-In `AStarAlgorithm.cpp`, I `#include "AStarAlgorithm.h"` to have access to the class and methods. In `AStarGrid`, I create a 2-d vector which creates a grid made up of `1`'s and `0`'s, `1` being a blocked node and `0` being an unblocked node. I print out the grid blocked nodes being represented by `#` and unblocked nodes being represented by `.`<br><br>
-<img alt="AStarAlgorithm.cpp-Initial-code" src="assests/images/Astar.cpp-initial-code.png" /> <img alt="AStarAlgorithm.cpp-Initial-grid" src="assests/images/Astar.cpp-initial-grid.png" /><br><br>
-Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the `AStarGrid` method to actually display it.
 
+<p align="center">
+<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/AStarAlgorithm.h-Initial-code.png" />
+</p><br><br>
 
+In `AStarAlgorithm.cpp`, I `#include "AStarAlgorithm.h"` to have access to the class and methods. In `AStarGrid`, I create a 2-d vector which creates a grid made up of `1`'s and `0`'s, `1` being a blocked node and `0` being an unblocked node. I use vectors as they are the preferred method for storing a range of elements. Vectors are preferred over arrays as vectors can be resized but both are preferred over C arrays to avoid memory bugs. As outlined in the `C++ Core Guidelines`, vectors should be used by default unless you have a reason to use a different container<br>
+- **SL.con.1: Prefer using STL array or vector instead of a C array**
+- **SL.con.2: Prefer using STL vector by default unless you have a reason to use a different container**<br>
+
+I print out the grid with blocked nodes being represented by `#` and unblocked nodes being represented by `.`<br><br>
+
+<p align="center">
+<img alt="AStarAlgorithm.cpp-Initial-code" src="assests/images/Astar.cpp-initial-code.png" /> <img alt="AStarAlgorithm.cpp-Initial-grid" src="assests/images/Astar.cpp-initial-grid.png" />
+</p><br><br>
+
+Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the `AStarGrid` method to actually display it. In week 2, I will be looking at UML diagrams and how I can design my code before I start developing.
 
 
 ## Week 2
