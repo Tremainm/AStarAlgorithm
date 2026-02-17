@@ -73,7 +73,7 @@ This was the initial UML class diagram I had for my week 1 code. It is obvious f
 - **C.2: Use class if the class has an invariant; use struct if the data members can vary independently**<br>
 
 <p align="center">
-<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/C.2-struct1.png" />
+<img width="400" height="600" alt="AStarAlgorithm h-Initial-code" src="assests/images/C.2-struct1.png" />
 </p><br><br>
 
 ## Week 3
