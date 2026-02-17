@@ -69,7 +69,12 @@ The main notations I will use are `+` and `-`.
 <img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/UML-1.png" />
 </p><br><br>
 
-This was the initial UML class diagram I had for my week 1 code. It is obvious from the image that I needed to spend some time developing my project design. I want to have methods that check the validity of my grid, check if a cell is in bounds, and checks if a cell is blocked. I will add them as private methods. I also want a variable that will hold the current coordinates of the cell the algorithm is in. I will use a struct for this to hold the row and column coordinates. An example use of a struct on C.2 C++ Core guidelines shows it being used when members can vary independently. 
+This was the initial UML class diagram I had for my week 1 code. It is obvious from the image that I needed to spend some time developing my project design. I want to have methods that check the validity of my grid, check if a cell is in bounds, and checks if a cell is blocked. I will add them as private methods. I also want a variable that will hold the current coordinates of the cell the algorithm is in. I will use a struct for this to hold the row and column coordinates. An example use of a struct on C.2 C++ Core guidelines shows it being used when members can vary independently.
+- **C.2: Use class if the class has an invariant; use struct if the data members can vary independently**<br>
+
+<p align="center">
+<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/C.2-struct.png" />
+</p><br><br>
 
 ## Week 3
 
