@@ -48,6 +48,24 @@ Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the
 - Show research of UML diagrams (Lecture slides and links)
 - Show UML diagrams to design my software
 
+## Initial UML Diagram Research
+In week 2, I focused on the design and structure of my A* Algorithm project using UML Class Diagrams. UML class diagrams are used to show the structure of a system. It shows classes, attributes, methods, and relationships. This makes it easier to communicate how the program works. To understand the layout of UML class diagrams, I look at GeeksforGeeks:
+- https://www.geeksforgeeks.org/system-design/unified-modeling-language-uml-class-diagrams/<br>
+
+This explained that a class diagram typically shows:
+- a class as a rectangle with name/attribute/method compartments.
+- the relationship between classes<br>
+
+There are also certain notations that are used to represent the access level attributes and methods
+- `+` for public (visible to all classes)
+- `-` for private (visible only within the class)
+- `#` for protected (visible to subclasses)
+- `~` for package or default visibility (visible to classes in the same package)<br>
+
+The main notations I will use are `+` and `-`.
+
+## Initial UML Class Diagram
+
 ## Week 3
 
 ## Week 4
