@@ -48,7 +48,7 @@ Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the
 - Show research of UML diagrams (Lecture slides and links)
 - Show UML diagrams to design my software
 
-## Initial UML Diagram Research
+### Initial UML Diagram Research
 In week 2, I focused on the design and structure of my A* Algorithm project using UML Class Diagrams. UML class diagrams are used to show the structure of a system. It shows classes, attributes, methods, and relationships. This makes it easier to communicate how the program works. To understand the layout of UML class diagrams, I looked at GeeksforGeeks and visual paradigm:
 - https://www.geeksforgeeks.org/system-design/unified-modeling-language-uml-class-diagrams/
 - https://www.visual-paradigm.com/guide/uml-unified-modeling-language/uml-aggregation-vs-composition/<br>
@@ -65,7 +65,7 @@ There are also certain notations that are used to represent the access level att
 
 The main notations I will use are `+` and `-`.
 
-## Initial UML Class Diagram
+### Initial UML Class Diagram
 <p align="center">
 <img width="290" height="410" alt="Initial UML Class Diagram" src="assests/images/UML-1.png" />
 </p><br><br>
@@ -91,6 +91,9 @@ I also want a method that will complete the actual A* algorithm search of the gr
 I'm sure this will develop over the weeks but it is a good starting point for now.
 
 ## Week 3
+In week 3, I focused my work on the manhattan calculation and creating the actual A* star search method which will do the actual calculation for finding the best route from start to goal
+
+### Initial Research and Understanding
 
 ## Week 4
 
