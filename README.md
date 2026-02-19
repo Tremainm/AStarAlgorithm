@@ -98,6 +98,7 @@ In week 3, I focused my work on creating grid and cell validation methods, the m
 <p align="center">
 <img width="500" height="700" alt="UML Class Diagram" src="assests/images/manhattan-template.jpg" />
 </p>
+
 - talk about image above and explain manhattan a bit and f, g, and h
 - talk about A* Search method 
 - talk about what was good and bad about the code from AI
