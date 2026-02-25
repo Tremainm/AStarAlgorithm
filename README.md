@@ -93,7 +93,9 @@ In week 3, I focused my work on creating grid and cell validation methods, the m
 ### Validation Methods
 Before running A*, I added a small set of validation methods to make sure the grid and inputs are valid. This prevents crashes (like out-of-range indexing) and avoids wasting time running the algorithm on impossible setups.
 
-- image of 'isvalidgrid()'
+<p align="center">
+<img alt="IsValidGrid()" src="assests/images/IsValidGrid.png" />
+</p>
 
 **What it checks**<br>
 The grid contains data:
@@ -103,7 +105,9 @@ The grid contains data:
 **Why it's used**<br>
 A* relies on accessing `grid[0]` and `grid[r][c]`. If the grid is empty, those accesses would crash. It’s an early “sanity check” before doing anything else.
 
-- image of 'InBounds()'
+<p align="center">
+<img alt="InBounds()" src="assests/images/InBounds.png" />
+</p>
 
 **What it checks**<br>
 The Cell coordinator `p` is inside the grid:
@@ -113,7 +117,9 @@ The Cell coordinator `p` is inside the grid:
 **Why it’s used**<br>
 It prevents out-of-bounds indexing when reading `grid[p.r][p.c]` and ensures the start/goal (and any checked positions) are valid locations on the grid. The `name` parameter (“Start”, “Goal”) makes error messages clearer.
 
-- image of 'IsNotBlocked'
+<p align="center">
+<img alt="IsNotBlocked()" src="assests/images/IsNotBlocked.png" />
+</p>
 
 **What it checks**<br>
 If the cell at `p` is walkable.
@@ -134,13 +140,28 @@ If the cell at `p` is walkable.
 <img width="500" height="700" alt="UML Class Diagram" src="assests/images/manhattan-template.jpg" />
 </p>
 
-- talk about image above and explain manhattan a bit and f, g, and h
-- talk about A* Search method 
-- talk about what was good and bad about the code from AI
+In my A* implementation, I use the **Manhattan distance** as the heuristic function h(n). The heuristic estimates how far a node is from the goal. The A* formula is **`f(n) = g(n) + h(n)`**
+- **`g(n)`** = cost from start to current node
+- **`h(n)`** = estimated cost from current node to goal
+- **`f(n)`** = total estimated cost of the path
+
+The Manhattan distance is what I use for **`h(n)`**.
+
+### Manhattan Implementation
+<p align="center">
+<img alt="Manhattan" src="assests/images/Manhattan.png" />
+</p>
+
+The above method calculates the Manhattan distance between two points on a grid. If `a` is the current node and `b` is the goal node, Then the function returns the total number of horizontal and vertical steps required to move from `a` to `b`.
+- **`std::abs(a.r - b.r)`** calculates the vertical distance (difference in rows).
+- **`std::abs(a.c - b.c)`** calculates the horizontal distance (difference in columns).
+
+They are added because, in a 4-direction grid, you can only move up, down, left, or right. You can’t move diagonally, so moving horizontally doesn’t reduce the vertical distance, and moving vertically doesn’t reduce the horizontal distance. To get to the goal, you have to complete all of the horizontal moves and all of the vertical moves. Since each move costs 1, the total distance is just the number of horizontal steps plus the number of vertical steps. The absolute value ensures the result is always positive. This is fine as we only care about the distance, not the direction.
 
 ### A* Search Method
-- explain overview of method
-- explain key points of method, what they do
+`AStarSearch()` is the method that actually runs the A* pathfinding algorithm on my grid. It returns a path as a `std::vector<Cell>` (a list of coordinates) from the start cell to the goal cell. If no path exists, it returns an empty vector. The `AStarSearch()` method goes through a series of steps to successfully calculate the optimal path.
+
+1. **Validation comes first**: Before the algorithm starts, I run my validation methods to make sure the inputs and the grid is safe and correct. I do the validation checking first to make sure the grid is valid, the start and goal are within the grid, and the start and goal are not blocked cells. This allows me to keep my A* algorithm focused on searching for the best path.
 
 ## Week 4
 
