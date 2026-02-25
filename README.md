@@ -91,8 +91,43 @@ I'm sure this will develop over the weeks but it is a good starting point for no
 In week 3, I focused my work on creating grid and cell validation methods, the manhattan calculation, and creating the actual A* star search method which will do the actual calculation for finding the best route from start to goal
 
 ### Validation Methods
-- talk about each validation method and what it checks
-- talk about why they are used
+Before running A*, I added a small set of validation methods to make sure the grid and inputs are valid. This prevents crashes (like out-of-range indexing) and avoids wasting time running the algorithm on impossible setups.
+
+- image of 'isvalidgrid()'
+
+**What it checks**<br>
+The grid contains data:
+- `grid` is not empty (has rows)
+- `grid[0]` is not empty (has columns)
+
+**Why it's used**<br>
+A* relies on accessing `grid[0]` and `grid[r][c]`. If the grid is empty, those accesses would crash. It’s an early “sanity check” before doing anything else.
+
+- image of 'InBounds()'
+
+**What it checks**<br>
+The Cell coordinator `p` is inside the grid:
+- `0 <= p.r < grid.size()`
+- `0 <= p.c < grid[0].size()`
+
+**Why it’s used**<br>
+It prevents out-of-bounds indexing when reading `grid[p.r][p.c]` and ensures the start/goal (and any checked positions) are valid locations on the grid. The `name` parameter (“Start”, “Goal”) makes error messages clearer.
+
+- image of 'IsNotBlocked'
+
+**What it checks**<br>
+If the cell at `p` is walkable.
+- `grid[p.r][p.c] == 0` (cell is free).
+- if it’s `1` (blocked), the method returns false.
+
+**Why it's used**
+- Stops A* running if the start or goal is on a wall.
+- Makes the program more user-friendly (clear error instead of confusing results).
+
+#### Why validation matters
+- **Safety**: avoids crashes from invalid indexing.
+- **Correctness**: ensures A* starts from a valid position and has a reachable target.
+- **Cleaner algorithm code**: A* can assume inputs are valid and focus only on pathfinding logic.
 
 ### Initial Research and Understanding of Manhattan Calculation
 <p align="center">
