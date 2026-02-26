@@ -524,6 +524,9 @@ m_printer.PrintGridWithPath(grid, path);
 Each line delegates to exactly one subsystem. `AStarAlgorithm` itself knows nothing about *how* validation, searching, or printing work, it only knows *in what order* to call them.
 
 ### Updated UML Class Diagram
+<p align="center">
+<img alt="Neighbours" src="assests/images/UMLDiagram_w4.svg" width="700">
+</p>
 
 ### What was achieved in Week 4
 - Refactored a single-class design into four focused classes following the **Single Responsibility Principle**
