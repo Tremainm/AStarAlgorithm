@@ -377,6 +377,164 @@ All of these issues are exactly what motivated the refactor in week 4. Getting t
 ---
 
 ## Week 4
+In week 4, I focused on refactoring the entire project to follow strong Object-Oriented (OO) design principles and the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Up to this point, all of the logic (validation, printing, and pathfinding) lived inside a single `AStarAlgorithm` class. While functional, this violated the **Single Responsibility Principle (SRP)**, which states that a class should have one, and only one, reason to change. The goal of week 4 was to split that monolithic class into focused, modular components that are easier to maintain, test, and extend.
+
+### Why Refactor?
+The original design had one class doing everything: validating the grid, printing output, and running the algorithm. This creates a problem. If I want to change how the grid is printed, I have to open the same file as the algorithm. If I want to test validation in isolation, I cannot. The C++ Core Guidelines directly address this:
+
+- **C.2: Use class if the class has an invariant; use struct if the data members can vary independently**
+- **I.1: Make interfaces explicit**: callers should know exactly what a function needs and returns
+- **P.1: Express ideas directly in code**: the structure of the code itself should communicate its purpose
+
+The refactor expanded my project to **7 files** across 4 focused classes, each with a single clear job.
+
+### `Cell.h`: The Cell Struct
+`Cell.h` defines a simple struct that holds a row (`r`) and column (`c`) coordinate. Previously, `Cell` lived inside `AStarAlgorithm.h`, which meant any file that only needed a coordinate type had to include the entire algorithm header. By moving it to its own file, it can be included anywhere independently.
+
+```cpp
+struct Cell
+{
+    int r = 0;
+    int c = 0;
+};
+```
+
+Using a `struct` here is a deliberate choice guided by the C++ Core Guidelines:
+
+- **C.1: Make related data into structs**: `r` and `c` are naturally related, they always travel together as a coordinate pair
+- **C.8: Use struct for passive data (no invariants, all public)**: `Cell` has no behaviour or enforced constraints, it is purely data
+- **P.1: Express ideas directly**: the type is named `Cell` because it *is* a cell, not an index or a raw pair of integers
+
+### `Grid.h`: The Grid Type Alias
+`Grid.h` introduces a single type alias:
+
+```cpp
+using Grid = std::vector<std::vector>;
+```
+
+Before this change, `std::vector<std::vector<int>>` was written out in full across every function signature in every file. This is noisy, fragile, and hard to change. If I later want to switch the grid representation to a flat 1D vector or a span, I would have had to update every signature manually. Now I only update one line.
+
+This follows:
+
+- **T.1: Use type aliases to express semantic intent**: `Grid` communicates *what* it is, not *how* it is stored
+- **SL.con.1: Prefer using STL array or vector instead of a C array**
+- **SL.con.2: Prefer using STL vector by default unless you have a reason to use a different container**
+
+### `GridValidator`: Input Validation
+`GridValidator.h` and `GridValidator.cpp` contain all grid and cell validation logic. This replaces the three validation methods that previously lived inside `AStarAlgorithm`. The class exposes four methods:
+
+* `IsValidGrid()`: checks the grid has at least one row and one column
+* `InBounds()`: checks that a `Cell` coordinate lies within the grid dimensions
+* `IsNotBlocked()`: checks that a `Cell` is not a wall (`grid[r][c] == 0`)
+* `ValidateCell()`: a convenience method that runs all three checks in sequence
+
+A key improvement here is the change from `const char*` to `std::string_view` for the `name` parameter used in error messages. The C++ Core Guidelines recommend:
+
+- **SL.str.2: Use `std::string_view` or `gsl::string_span` to refer to character sequences**: `std::string_view` is a lightweight, non-owning view of any string. It accepts string literals, `std::string`, and other string types without copying, making it more flexible and efficient than `const char*`
+
+### `GridPrinter`: Display Logic
+`GridPrinter.h` and `GridPrinter.cpp` contain all display logic. The class exposes three methods:
+
+- `PrintGrid()`: renders the grid using `.` for open cells and `#` for walls
+- `PrintPathCoordinates()`: prints each cell's `(row, col)` coordinate along the found path
+- `PrintGridWithPath()`: a new method that overlays `*` on the grid to visually show the route
+
+The most interesting method is `PrintGridWithPath()`. It builds an `std::unordered_set<int>` of flattened path indices before iterating over the grid:
+
+```cpp
+std::unordered_set pathSet;
+pathSet.reserve(path.size());
+for (const auto& p : path)
+{
+    pathSet.insert(p.r * cols + p.c);
+}
+```
+
+Using a set here is deliberate. A naive approach would check if each grid cell appears in the path vector using a linear search, which is O(n) per cell and O(rows x cols x pathLength) in total. The `unordered_set` gives O(1) average lookup per cell, making the whole operation O(rows x cols) regardless of path length. The `contains()` method used here was introduced in **C++20** as a cleaner alternative to `find() != end()`.
+
+Separating printing from the algorithm means I could later swap `GridPrinter` for a GUI renderer or a file writer without touching a single line of `AStarSearch`.
+
+### `AStarSearch`: Pure Pathfinding
+`AStarSearch.h` and `AStarSearch.cpp` contain only the pathfinding algorithm. The class has one public method, `Search()`, and two private helpers, `Manhattan()` and `ReconstructPath()`.
+
+**`OpenNode` is now at class scope:**
+
+```cpp
+struct OpenNode
+{
+    int f = 0;
+    int g = 0;
+    int idx = 0;
+
+    bool operator>(const OpenNode& other) const noexcept { return f > other.f; }
+};
+```
+
+Previously, `OpenNode` was a local struct inside the `AStarSearch` function body, making it invisible to tests and unable to be reused. Moving it to header scope solves both problems. The `operator>` overload enables the use of `std::greater<OpenNode>` as the priority queue comparator, which is more idiomatic than a separate comparator struct and requires no extra code.
+
+**Preconditions use `assert` instead of repeated guard clauses:**
+
+```cpp
+assert(!grid.empty() && !grid[0].empty() && "Search called with empty grid");
+assert(grid[start.r][start.c] == 0 && "Start cell is blocked");
+assert(grid[goal.r][goal.c]  == 0  && "Goal cell is blocked");
+```
+
+Because `AStarAlgorithm::Run()` already validates all inputs before calling `Search()`, repeating full `if`/`return` guards inside `Search()` is redundant. The `assert`s document the *preconditions*, which is the contract between the caller and `Search()`, without adding runtime overhead in release builds (asserts compile away with `NDEBUG`). This aligns with:
+
+- **P.5: Prefer compile-time checking to run-time checking**: express constraints as early as possible
+- **I.6: Prefer `Expects()` for expressing preconditions**: `assert` is the practical equivalent when the GSL is not available
+
+`ReconstructPath()` now uses `std::ranges::reverse()` from **C++20** instead of the iterator-based `std::reverse()`:
+
+```cpp
+std::ranges::reverse(path);
+```
+
+The ranges algorithms are the modern C++20/23 replacement for the iterator-pair STL algorithms. They accept containers directly rather than requiring explicit `begin()`/`end()` calls, which makes the code cleaner and more readable.
+
+All methods on `AStarSearch` are marked `const` because none of them modify any member state. This follows:
+
+- **Con.2: By default, make member functions `const`**: a method that does not need to mutate state should declare that fact explicitly, both as documentation and to allow calling on `const` objects
+
+### `AStarAlgorithm`: The Orchestrator / Facade
+`AStarAlgorithm` is now a thin **facade** that wires the three subsystems together. It owns instances of `GridValidator`, `GridPrinter`, and `AStarSearch` as private members, and exposes a single public method:
+
+```cpp
+std::vector Run(const Grid& grid, Cell start, Cell goal) const;
+```
+
+The critical change here is that `Run()` **takes parameters** rather than hardcoding the grid and cells inside the method body. This makes `AStarAlgorithm` genuinely reusable, the same object can be used to solve different grids without modification. `main.cpp` demonstrates this by running three different scenarios through the same `aStar` object.
+
+This follows the **Open/Closed Principle (OCP)**: the class is open for extension (you can pass any grid) but closed for modification (you do not need to edit the class to try a new scenario).
+
+The `Run()` method itself is intentionally short, it only coordinates:
+
+```cpp
+if (!m_validator.IsValidGrid(grid)) return {};
+if (!m_validator.ValidateCell(grid, start, "Start")) return {};
+if (!m_validator.ValidateCell(grid, goal,  "Goal"))  return {};
+
+m_printer.PrintGrid(grid);
+const auto path = m_search.Search(grid, start, goal);
+m_printer.PrintPathCoordinates(path);
+m_printer.PrintGridWithPath(grid, path);
+```
+
+Each line delegates to exactly one subsystem. `AStarAlgorithm` itself knows nothing about *how* validation, searching, or printing work, it only knows *in what order* to call them.
+
+### Updated UML Class Diagram
+
+### What was achieved in Week 4
+- Refactored a single-class design into four focused classes following the **Single Responsibility Principle**
+- Moved `Cell` into its own header so it has no dependency on algorithm code
+- Introduced `using Grid = ...` to eliminate repeated complex type signatures across all files
+- Replaced `const char*` with `std::string_view` in all validation interfaces (C++17)
+- Added `PrintGridWithPath()` using `unordered_set` and the `contains()` member (C++20)
+- Moved `OpenNode` to header scope with `operator>` for cleaner priority queue usage
+- Replaced redundant validation guards inside `AStarSearch` with `assert` preconditions
+- Used `std::ranges::reverse()` for idiomatic path reconstruction (C++20)
+- Made `Run()` accept parameters instead of hardcoding the grid, making the class reusable
 
 ## Week 5
 
