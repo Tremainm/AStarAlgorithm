@@ -43,6 +43,7 @@ I print out the grid with blocked nodes being represented by `#` and unblocked n
 
 Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the `AStarGrid` method to actually display it. In week 2, I will be looking at UML diagrams and how I can design my code before I start developing.
 
+---
 
 ## Week 2
 ### Initial UML Diagram Research
@@ -86,6 +87,8 @@ I also want a method that will complete the actual A* algorithm search of the gr
 </p>
 
 I'm sure this will develop over the weeks but it is a good starting point for now.
+
+---
 
 ## Week 3
 In week 3, I focused my work on creating grid and cell validation methods, the manhattan calculation, and creating the actual A* star search method which will do the actual calculation for finding the best route from start to goal
@@ -158,10 +161,220 @@ The above method calculates the Manhattan distance between two points on a grid.
 
 They are added because, in a 4-direction grid, you can only move up, down, left, or right. You can’t move diagonally, so moving horizontally doesn’t reduce the vertical distance, and moving vertically doesn’t reduce the horizontal distance. To get to the goal, you have to complete all of the horizontal moves and all of the vertical moves. Since each move costs 1, the total distance is just the number of horizontal steps plus the number of vertical steps. The absolute value ensures the result is always positive. This is fine as we only care about the distance, not the direction.
 
-### A* Search Method
-`AStarSearch()` is the method that actually runs the A* pathfinding algorithm on my grid. It returns a path as a `std::vector<Cell>` (a list of coordinates) from the start cell to the goal cell. If no path exists, it returns an empty vector. The `AStarSearch()` method goes through a series of steps to successfully calculate the optimal path.
+### A\* Search Method
 
-1. **Validation comes first**: Before the algorithm starts, I run my validation methods to make sure the inputs and the grid is safe and correct. I do the validation checking first to make sure the grid is valid, the start and goal are within the grid, and the start and goal are not blocked cells. This allows me to keep my A* algorithm focused on searching for the best path.
+`AStarSearch()` is the method that actually runs the A\* pathfinding algorithm on my grid. It returns a path as a `std::vector<Cell>` from the start cell to the goal cell, or an empty vector if no path exists. Below I'll step through each section of the method and explain what it does and why it's there.
+
+#### Step 1: Early Validation
+
+<p align="center">
+<img alt="Validation Checking" src="assests/images/validation-checking.png" />
+</p>
+
+The first thing `AStarSearch()` does is run the three validation checks before any algorithm logic starts. If the grid is empty, if start/goal are outside the grid, or if start/goal are walls, the method returns an empty vector immediately. This keeps A\* focused purely on searching — it should never have to guard against invalid data mid-loop.
+
+#### Step 2: Grid Size and Flattening Setup
+
+<p align="center">
+<img alt="Grid Size & Flattening" src="assests/images/grid-size.png" />
+</p>
+
+Here I read the grid dimensions and calculate the total number of cells. The reason I store `total` is that all of the A\* state arrays (`bestG`, `parent`, `closed`) are 1D vectors of size `total`. Working with 1D arrays is simpler and more cache-friendly than nested 2D structures.
+
+#### Step 3: Two Lambdas: Mapping 2D to 1D
+
+```cpp
+auto toIndex = [cols](const Cell& p) { return p.r * cols + p.c; };
+auto toCell  = [cols](int idx)       { return Cell{ idx / cols, idx % cols }; };
+```
+
+These two lambdas convert between a 2D cell coordinate and a flat 1D index. `toIndex` turns `(r, c)` into a single integer, and `toCell` turns it back. For example on a 4-column grid: `(2, 3)` becomes `2 * 4 + 3 = 11`, and `11` maps back to `(11 / 4, 11 % 4) = (2, 3)`. This means I can use simple array indexing like `bestG[idx]` everywhere rather than `bestG[r][c]`, which keeps the code cleaner and the data contiguous in memory.
+
+**Start and Goals Indices**
+<p align="center">
+<img alt="Start & Goal indices" src="assests/images/start_goal-index.png" />
+</p>
+
+Here we are using the lambdas to convert start and goal to the flattened index form so the algorithm can use them for arrays and queue items.
+
+#### Step 4: Core A\* Data Structures
+
+<p align="center">
+<img alt="Data Structs" src="assests/images/data-structs.png" />
+</p>
+
+These three vectors are the core state of the algorithm:
+
+* **`bestG`** stores the best (lowest) known cost to reach each node from the start. It starts as `INF` (meaning unreached) and gets updated whenever a shorter path is found
+* **`parent`** stores the index of the previous node on the best known path to each node. It starts as `-1` (no parent) and is used at the end to reconstruct the path by walking backwards
+* **`closed`** tracks which nodes have been fully processed and expanded. Once a node is closed, we know we already have the optimal cost to reach it and don't need to revisit it
+
+#### Step 5: The Open Node and Priority Queue
+
+<p align="center">
+<img alt="Open Node and Priority Queue" src="assests/images/OpenNode-priority_queue.png" />
+</p>
+
+`OpenNode` is what gets stored in the priority queue. It holds the total estimated cost `f = g + h`, the actual cost so far `g`, and the flattened cell index. The comparator `CompareBySmallestF` makes `std::priority_queue` behave as a **min-heap** by returning `a.f > b.f`. This means the node with the lowest `f` is always at the top and is popped first, which is exactly what A\* requires.
+
+#### Step 6: Initialising the Search
+
+<p align="center">
+<img alt="Initial Search" src="assests/images/init_search.png" />
+</p>
+
+The search starts by setting the start node's `g` cost to `0` and pushing it into the open queue with `f = 0 + h = Manhattan(start, goal)`. This is the only node we know anything about at the start, so it's the first candidate to be expanded.
+
+#### Step 7: 4-Direction Movement Vectors
+
+<p align="center">
+<img alt="4-direction movement" src="assests/images/4dir-movement.png" />
+</p>
+
+These two arrays represent the four directions: up, down, left, right. By looping `k` from 0 to 3 and applying `dr[k]` and `dc[k]` to the current cell, I generate all four neighbours cleanly without repeating code four times.
+
+#### Step 8: Path Reconstruction Lambda
+
+<p align="center">
+<img alt="Path reconstruction" src="assests/images/path-reconstruct.png" />
+</p>
+
+A\* doesn't store the full path while it searches, it only stores "where I came from" at each node. When the goal is reached, this lambda walks backwards through the `parent` array from goal to start, building up a vector of cells, then reverses it to get the correct start to goal order. This is memory-efficient because we don't maintain a growing path list throughout the search.
+
+#### Step 9: The Main Loop
+
+<p align="center">
+<img alt="Main Loop" src="assests/images/AStar-while-loop.png" />
+</p>
+
+The main `while` loop runs as long as there are nodes to explore. On each iteration it pops the node with the lowest `f` value from the priority queue.
+
+**Skipping stale entries:**
+
+```cpp
+if (current.g != bestG[current.idx]) { continue; }
+```
+
+Because `std::priority_queue` has no way to update the priority of an existing entry (no "decrease-key" operation), when a better path to a node is found I push a new, improved entry and leave the old one in the queue. This check detects those old entries if the `g` value on the popped node doesn't match the best known `g` for that cell, it's a stale duplicate and gets skipped.
+
+**Early exit on reaching the goal:**
+
+```cpp
+if (current.idx == goalIndex) {
+    return reconstructPath(goalIndex);
+}
+```
+
+As soon as the goal node is popped from the queue, the path found is guaranteed to be optimal with an admissible heuristic like Manhattan distance, the first time you pop a node its cost is the shortest. So we immediately reconstruct and return the path.
+
+**Closed set check:**
+
+```cpp
+if (closed[current.idx]) { continue; }
+closed[current.idx] = true;
+```
+
+If the node has already been fully expanded, skip it. Otherwise mark it as closed so it won't be expanded again.
+
+#### Step 10: Expanding Neighbours
+
+<p align="center">
+<img alt="Neighbours" src="assests/images/dir_for-loop.png" />
+</p>
+
+For each of the four neighbours of the current cell, the algorithm applies a series of filters before considering it:
+
+1. **Bounds check**: silently skip any cell outside the grid boundaries. This is done inline rather than calling `InBounds()` to avoid printing an error message for every out-of-bounds neighbour during the search loop
+2. **Wall check**: skip cells where `grid[r][c] != 0`
+3. **Closed check**: skip cells that are already fully processed
+
+If the neighbour passes all three, the algorithm computes the **tentative g-cost**:
+
+```cpp
+const int tentativeG = bestG[current.idx] + kMoveCost;
+if (tentativeG >= bestG[nIdx]) { continue; }
+```
+
+This is the "relaxation" step, the same idea used in Dijkstra's algorithm. If going through the current node would cost *at least* as much as the best route already known to reach the neighbour, there's no point updating anything. But if it's an improvement:
+
+```cpp
+parent[nIdx] = current.idx;
+bestG[nIdx]  = tentativeG;
+const int f  = tentativeG + Manhattan(neighbour, goal);
+open.push(OpenNode{ f, tentativeG, nIdx });
+```
+
+The parent is updated, the best g-cost is updated, and the neighbour is pushed into the open queue with its new `f` value.
+
+#### Step 11: No Path Found
+```cpp
+return {}; // no path
+```
+
+If the queue empties without ever reaching the goal, it means no valid path exists between the start and goal on this grid. The method returns an empty vector, which `AStarGrid()` then handles by printing "No path found."
+
+### Why This Approach Is Good But Bad Coding Practice
+
+The `AStarSearch()` method above works correctly. It finds the optimal path, handles edge cases, and produces the right output. Getting a working implementation of A\* is genuinely non-trivial, and having it all in one place makes it easy to read through from top to bottom and understand the full flow. For a first working version, this approach is perfectly reasonable.
+
+However, from a software engineering standpoint, cramming validation, data structure definitions, helper lambdas, and the algorithm all into a single method is a poor coding practice. Below are the main issues with this approach, referenced against the C++ Core Guidelines and C++23 standards.
+
+#### 1. It Violates the Single Responsibility Principle
+
+The method does too many things: it validates inputs, defines types (`OpenNode`, `CompareBySmallestF`), defines helper functions (`toIndex`, `toCell`, `reconstructPath`), and runs the algorithm. The **C++ Core Guidelines** are clear on this:
+
+> **C.2: Use class if the class has an invariant; use struct if the data members can vary independently**
+
+More broadly, each unit of code should have **one reason to change**. If I need to change how the path is printed, I should not have to open the same file as the algorithm. If I want to test validation in isolation, I cannot. It is buried inside `AStarSearch()`.
+
+#### 2. Local `struct` Definitions Hide Reusable Types
+
+`OpenNode` and `CompareBySmallestF` are defined as local structs inside the function body:
+
+```cpp
+struct OpenNode { int f; int g; int idx; };
+struct CompareBySmallestF { ... };
+```
+
+This means they are invisible outside of `AStarSearch()`. If I wanted to write a unit test for the priority queue ordering, or reuse `OpenNode` in a different search variant, I could not. Types that carry meaningful responsibility should be at an appropriate scope, at minimum class scope, and ideally in their own header if they are genuinely reusable. This follows:
+
+> **I.1: Make interfaces explicit**: types used at the boundary of a function should be visible to callers
+
+#### 3. `const char*` Instead of `std::string_view`
+
+The validation methods use `const char*` for the `name` parameter:
+
+```cpp
+bool InBounds(const std::vector<std::vector>& grid, Cell p, const char* name) const;
+```
+
+C++17 introduced `std::string_view` as the correct way to pass read-only string data. It accepts string literals, `std::string`, and other string types without copying, and carries length information (unlike a raw pointer). Using `const char*` is a C-style habit that C++ has had a better answer for since 2017:
+
+> **SL.str.2: Use `std::string_view` or `gsl::string_span` to refer to character sequences**
+
+#### 4. The Repeated Complex Type `std::vector<std::vector<int>>`
+
+The raw type `std::vector<std::vector<int>>` is written out in full in every function signature:
+
+```cpp
+std::vector AStarSearch(const std::vector<std::vector>& grid, Cell start, Cell goal);
+bool IsValidGrid(const std::vector<std::vector>& grid) const;
+bool InBounds(const std::vector<std::vector>& grid, Cell p, const char* name) const;
+```
+
+This is noisy, hard to read, and fragile. If the grid representation ever changes, every single signature needs to be updated manually. A type alias solves this immediately:
+
+```cpp
+using Grid = std::vector<std::vector>;
+```
+
+This follows:
+
+> **T.1: Use aliases to express semantic intent and avoid repeating complex types**
+
+All of these issues are exactly what motivated the refactor in week 4. Getting the algorithm working first was the right move,  but once it worked, taking the time to improve the structure made the code genuinely better: easier to test, easier to extend, and much more closely aligned with what modern C++ should look like.
+
+---
 
 ## Week 4
 
