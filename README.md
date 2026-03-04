@@ -379,6 +379,15 @@ All of these issues are exactly what motivated the refactor in week 4. Getting t
 ## Week 4
 In week 4, I focused on refactoring the entire project to follow strong Object-Oriented (OO) design principles and the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Up to this point, all of the logic (validation, printing, and pathfinding) lived inside a single `AStarAlgorithm` class. While functional, this violated the **Single Responsibility Principle (SRP)**, which states that a class should have one, and only one, reason to change. The goal of week 4 was to split that monolithic class into focused, modular components that are easier to maintain, test, and extend.
 
+It was at this stage that I switched to using Claude over ChatGPT. Below is the prompt I gave to Claude which took my existing code and made it more modular and Object-Oriented:
+>The attached files are a C++ project where I am creating an A* algorithm. Could you explain the code to me, what it does, and how it does it. Also give feedback on what parts could be improved on. I want my project to be strong OO (object oriented) and I want it to be very modular.
+
+I also provided some instructions to my Claude chat. These instructions are basically rules that it will follow. Here are the instructions I gave it:
+- Follow C++ core guidelines here (https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) where possible.
+- Follow C++23 standards.
+
+The code it gave back shows that it followed the instructions very well as throughout the code, it commented on what modern standards it followed.
+
 ### Why Refactor?
 The original design had one class doing everything: validating the grid, printing output, and running the algorithm. This creates a problem. If I want to change how the grid is printed, I have to open the same file as the algorithm. If I want to test validation in isolation, I cannot. The C++ Core Guidelines directly address this:
 
