@@ -537,6 +537,43 @@ Each line delegates to exactly one subsystem. `AStarAlgorithm` itself knows noth
 <img alt="Neighbours" src="assests/images/UMLDiagram_w4.svg" width="700">
 </p>
 
+The updated UML class diagram shows how the project has been split from a single monolithic class into six separate components. There are four classes, one struct used as a type alias, and one plain struct. Below is a breakdown of each component and the relationships between them.
+
+
+#### The Components
+**`AStarAlgorithm`** sits at the top of the diagram and acts as the orchestrator for the entire pipeline. It has one public method, `Run()`, which takes a `Grid`, a start `Cell`, and a goal `Cell` and returns a `vector<Cell>` representing the found path. Its private section holds three member objects: `m_validator`, `m_printer`, and `m_search`. It owns these objects and delegates to each one at the appropriate step in `Run()`.
+
+**`GridValidator`** sits in the middle row and is responsible solely for validation. It exposes three individual check methods: `IsValidGrid()`, `InBounds()`, and `IsNotBlocked()`, as well as a `ValidateCell()` method that runs all three in sequence. All methods are public and return `bool`. The `name` parameter on `InBounds()` and `IsNotBlocked()` is `string_view`, which is the C++17 replacement for `const char*`.
+
+**`GridPrinter`** also sits in the middle row and is responsible solely for display. It has three public methods: `PrintGrid()` for rendering the raw grid, `PrintPathCoordinates()` for printing the path as a list of coordinates, and `PrintGridWithPath()` for overlaying the path visually on the grid using `*`.
+
+**`AStarSearch`** sits in the middle row on the right and contains the pure pathfinding logic. It has one public method `Search()` which takes a `Grid`, start `Cell`, and goal `Cell` and returns the path. It also has two private helper methods: `Manhattan()` which calculates the heuristic distance between two cells, and `ReconstructPath()` which walks backwards through the parent array once the goal is reached to build the final path.
+
+**`Cell`** is a struct in the bottom row. It holds two public integer fields, `r` and `c`, which represent a row and column coordinate on the grid. Both default to `0`. It is used throughout the project as the standard way to represent a position within the grid.
+
+**`OpenNode`** is a struct in the bottom right. It holds three public integer fields: `f` (the total estimated cost `g + h`), `g` (the actual cost from start to this node), and `idx` (the flattened 1D index of the cell). It is used internally by `AStarSearch` to represent nodes stored in the priority queue.
+
+**`Grid`** is a type alias in the bottom centre, marked with the `typedef` stereotype in the diagram. It is defined as `vector<vector<int>>` and the diagram also documents that `0` means free and `1` means blocked. Rather than a class or struct it is simply a named alias that makes all function signatures cleaner and easier to read.
+
+
+#### The Relationships
+**Composition arrows (solid line, filled diamond)**
+There are three composition arrows pointing from `AStarAlgorithm` down to `GridValidator`, `GridPrinter`, and `AStarSearch`. Composition means `AStarAlgorithm` owns these objects. They are stored as member variables (`m_validator`, `m_printer`, `m_search`) and their lifetime is tied to the lifetime of `AStarAlgorithm`. If the `AStarAlgorithm` object is destroyed, so are all three of them. This is the strongest form of relationship in the diagram and reflects the fact that `AStarAlgorithm` is entirely responsible for coordinating these three subsystems.
+
+**Dependency arrows (dashed line, open arrow)**
+The dashed arrows represent dependency relationships, meaning one component uses another but does not own it. These are typically seen where a type appears as a function parameter or return type rather than as a stored member. The dependencies in the diagram are:
+
+- `GridValidator` depends on both `Grid` and `Cell`: both types appear in its method signatures as parameters
+- `GridPrinter` depends on both `Grid` and `Cell`: `Grid` is passed into `PrintGrid()` and `PrintGridWithPath()`, and `Cell` appears in `PrintPathCoordinates()` and `PrintGridWithPath()` via `vector<Cell>`
+- `AStarSearch` depends on `Grid`, `Cell`, and `OpenNode`: `Grid` and `Cell` are parameters to `Search()`, and `OpenNode` is used internally within the search loop
+- `AStarAlgorithm` depends on both `Grid` and `Cell`: both appear in the signature of `Run()`
+
+
+#### What the Diagram Shows About the Design
+The layout of the diagram communicates the architecture clearly. `AStarAlgorithm` sits at the top because it is the entry point and the only class a caller needs to interact with directly. The three subsystem classes sit in the middle because they each do one job and report upward to `AStarAlgorithm`. `Cell`, `Grid`, and `OpenNode` sit at the bottom because they are pure data types with no dependencies of their own, everything else depends on them, but they depend on nothing.
+
+This follows the **Single Responsibility Principle**: each class in the middle row has exactly one reason to change. If the way errors are printed needs to change, only `GridValidator` is touched. If the visual output needs to change, only `GridPrinter` is touched. If the algorithm itself needs to change, only `AStarSearch` is touched. `AStarAlgorithm` only needs to change if the order or coordination of those steps changes.
+
 ### What was achieved in Week 4
 - Refactored a single-class design into four focused classes following the **Single Responsibility Principle**
 - Moved `Cell` into its own header so it has no dependency on algorithm code
