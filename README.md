@@ -532,6 +532,48 @@ m_printer.PrintGridWithPath(grid, path);
 
 Each line delegates to exactly one subsystem. `AStarAlgorithm` itself knows nothing about *how* validation, searching, or printing work, it only knows *in what order* to call them.
 
+### Adapting the Code: What I Removed and Why
+When I received the initial refactored code, it included several features that went beyond what I felt was necessary for this project. Rather than following every strict guideline, I made a deliberate decision to keep the code clean and well-structured while focusing on deepening my understanding of the A* algorithm itself. This is a 5 credit module, and I felt it was more valuable to understand what the code was doing and why, rather than applying every advanced C++ feature available. Below are the things I removed and the reasoning behind each decision.
+
+#### `[[nodiscard]]` on `GridValidator` Methods
+The original `GridValidator.h` had `[[nodiscard]]` applied to all four validation methods:
+
+```cpp
+[[nodiscard]] bool IsValidGrid(const Grid& grid) const;
+[[nodiscard]] bool InBounds(const Grid& grid, Cell p, std::string_view name) const;
+[[nodiscard]] bool IsNotBlocked(const Grid& grid, Cell p, std::string_view name) const;
+[[nodiscard]] bool ValidateCell(const Grid& grid, Cell p, std::string_view name) const;
+```
+
+`[[nodiscard]]` is a C++17 attribute that causes a compiler warning if the return value of a function is discarded without being used. It is a useful safety net in large production codebases where someone might accidentally call a validation function and forget to check the result. I removed it and kept plain `bool` declarations:
+
+```cpp
+bool IsValidGrid(const Grid& grid) const;
+bool InBounds(const Grid& grid, Cell p, std::string_view name) const;
+bool IsNotBlocked(const Grid& grid, Cell p, std::string_view name) const;
+bool ValidateCell(const Grid& grid, Cell p, std::string_view name) const;
+```
+
+For a project of this scale, I am the only person writing and reading this code. The validation results are always checked with `if` statements in `AStarAlgorithm::Run()`, so the risk of accidentally discarding them is very low. Adding `[[nodiscard]]` felt like adding complexity without any real benefit at this stage.
+
+#### `std::cerr` Replaced with `std::cout`
+The original `GridValidator.cpp` wrote error messages to `std::cerr` rather than `std::cout`:
+
+```cpp
+std::cerr << "Error: Grid is empty or has no columns.\n";
+```
+
+`std::cerr` is the standard error stream, meaning diagnostic output is separated from normal program output. This matters in production applications where `stdout` and `stderr` might be redirected to different places, or where a test runner needs to distinguish between program output and error messages. In my version I kept everything on `std::cout`:
+
+```cpp
+std::cout << "Error: Grid is empty or has no columns.\n";
+```
+
+For a console application at this level, the distinction between `cout` and `cerr` does not affect how the program runs or how I read its output. Everything prints to the same terminal window either way, and separating them added a layer of detail that was not necessary for this module.
+
+#### Overall Approach
+The common thread across all of these removals is the same: each feature that was taken out was technically correct and followed good C++ practice, but none of them changed how the program actually runs or helped me understand the algorithm better. The refactor into `GridValidator`, `GridPrinter`, `AStarSearch`, and `AStarAlgorithm` gave me a solid, modular structure that follows the Single Responsibility Principle and the C++ Core Guidelines in a meaningful way. That was the real goal of week 4. The finer details like `[[nodiscard]]`, `cerr`, and defaulted operators are things I am aware of and could revisit in the future, but keeping the code straightforward for now made it easier to focus on understanding what the A* algorithm is actually doing under the hood.
+
 ### Updated UML Class Diagram
 <p align="center">
 <img alt="Neighbours" src="assests/images/UMLDiagram_w4.svg" width="700">
