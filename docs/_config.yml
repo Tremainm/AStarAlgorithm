@@ -3,9 +3,7 @@ description: "A modern C++ implementation of the A* pathfinding algorithm. Devel
 
 author: "Tremain Mannion"
 
-remote_theme: just-the-docs/just-the-docs
-nav_enabled: true
-heading_anchors: true
+theme: minima
 
 github:
   repository_url: "https://github.com/Tremainm/AStarAlgorithm"
