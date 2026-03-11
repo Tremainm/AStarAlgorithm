@@ -875,4 +875,72 @@ The defaulted equality operator was added to `Cell`. It has two uses: the wall o
 
 * **C.80: Use `= default` if you have to be explicit about using the default semantics**: the compiler-generated version is correct and there is no reason to write it manually
 
+### `Search()` Method Analysis
+
+The `Search()` method is a very long method that breaks the modern C++ **Single Responsibility Principle (SRP)**. The function is long because it is doing several distinct things inline such as:
+- Initialising data structures.
+- Running the main loop.
+- Processing neighbours.
+- Reconstructing the path.
+
+These all violate `SRP` at the function level, not just the class level. There is a good reason why the `Search()` method is so long. A* is an inherently stateful algorithm. The `bestG`, `parent`, `closed`, and `open` structures all need to talk to each other throughout the search. This makes it harder to decompose than something like validation or printing, because I cannot cleanly pass all that shared state between small functions without either a lot of parameters or making them member variables. 
+
+#### Claude Suggestions
+
+When I asked Claude about solutions to fix the length of the `search()` method, it gave me some options and suggestions:
+
+**Option 1: Extract a private helper for neighbour processing**
+
+The inner `for` loop that processes neighbours is a self-contained unit of work. It could become a private method.
+```cpp
+void ProcessNeighbour(const Cell& neighbour, int currentIdx,
+                      const Grid& grid, Cell goal,
+                      std::vector<int>& bestG,
+                      std::vector<int>& parent,
+                      std::priority_queue<...>& open) const;
+```
+
+This has its own problems though. I would end up passing several parameters just to avoid a `for` loop being in `Search()`. 
+
+**Option 2: Extract a private search context struct**
+
+Claude also suggested that a cleaner modern C++ approach is to bundle the algorithm's working state into a private struct, which `Search()` constructs and then delegates to:
+```cpp
+struct SearchContext
+{
+    const Grid&            grid;
+    const int              rows;
+    const int              cols;
+    const int              goalIdx;
+    std::vector<int>       bestG;
+    std::vector<int>       parent;
+    std::vector<bool>      closed;
+    std::priority_queue<OpenNode,
+        std::vector<OpenNode>,
+        std::greater<OpenNode>> open;
+
+    void ProcessNeighbours(const OpenNode& current);
+    std::vector<Cell> Run(Cell start, Cell goal);
+};
+```
+
+`Search()` would then become:
+```cpp
+std::vector<Cell> AStarSearch::Search(const Grid& grid, Cell start, Cell goal) const
+{
+    SearchContext ctx{ grid, start, goal };
+    return ctx.Run();
+}
+```
+
+This is a much cleaner and more modern approach, but it is significantly more complex to implement and it is probably over-engineering for what is still fundamentaly one algorithm. It would be worth doing if `Search()` was being called from multiple places or if the context needed to be inspected after the search completed.
+
+**The Honest Answer from Claude**
+
+Claude gave me a rather honest answer about my questions with `Search`. Here is the full context response it gave me:
+> The honest answer for your project:
+The length of Search is a known limitation worth acknowledging in your blog rather than something that needs to be fixed right now. The C++ Core Guidelines themselves note that some algorithms are inherently procedural and that forcing them into small functions can reduce clarity rather than improve it. What makes your current version acceptable is that it is well commented, the variable names are descriptive, and the logical sections are visually separated. A long function with clear structure is better than several short functions with unclear relationships.
+
+It shows that even though `Search()` breaks *some* modern C++ practices, it is also important to think about making sure procedural algorithms have enough clarity so people can understand the code. Since `Search()` is well commented, the variable names make sense, and sections are split up based on what logic they implement, it is perfectly acceptable to keep it as a long function.
+
 ## Week 6
