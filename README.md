@@ -379,6 +379,8 @@ All of these issues are exactly what motivated the refactor in week 4. Getting t
 ## Week 4
 In week 4, I focused on refactoring the entire project to follow strong Object-Oriented (OO) design principles and the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Up to this point, all of the logic (validation, printing, and pathfinding) lived inside a single `AStarAlgorithm` class. While functional, this violated the **Single Responsibility Principle (SRP)**, which states that a class should have one, and only one, reason to change. The goal of week 4 was to split that monolithic class into focused, modular components that are easier to maintain, test, and extend.
 
+### Switch to Claude
+
 It was at this stage that I switched to using Claude over ChatGPT. Below is the prompt I gave to Claude which took my existing code and made it more modular and Object-Oriented:
 >The attached files are a C++ project where I am creating an A* algorithm. Could you explain the code to me, what it does, and how it does it. Also give feedback on what parts could be improved on. I want my project to be strong OO (object oriented) and I want it to be very modular.
 
@@ -540,7 +542,7 @@ struct CompareBySmallestF {
 std::priority_queue, CompareBySmallestF> open;
 ```
 
-This works, but it adds an extra type that exists solely to describe how `OpenNode` values should be ordered. Since ordering by `f` is the only natural way to compare two `OpenNode` values anyway, it makes more sense to define that comparison directly on the struct with `operator>` and use the standard `std::greater<OpenNode>`. The intent is clearer, there is less code, and `std::greater` is immediately recognisable as "smallest first" to any C++ programmer reading the code. It also made more sense
+This works, but it adds an extra type that exists solely to describe how `OpenNode` values should be ordered. Since ordering by `f` is the only natural way to compare two `OpenNode` values anyway, it makes more sense to define that comparison directly on the struct with `operator>` and use the standard `std::greater<OpenNode>`. The intent is clearer, there is less code, and `std::greater` is immediately recognisable as "smallest first" to any C++ programmer reading the code. It also made more sense to use operator overloading as we were learning how to create and use these in our lab sessions.
 
 **Preconditions use `assert` instead of repeated guard clauses:**
 
@@ -567,7 +569,7 @@ All methods on `AStarSearch` are marked `const` because none of them modify any 
 
 - **Con.2: By default, make member functions `const`**: a method that does not need to mutate state should declare that fact explicitly, both as documentation and to allow calling on `const` objects
 
-### `AStarAlgorithm`: The Orchestrator / Facade
+### `AStarAlgorithm`: The Orchestrator
 `AStarAlgorithm` is now a thin **facade** that wires the three subsystems together. It owns instances of `GridValidator`, `GridPrinter`, and `AStarSearch` as private members, and exposes a single public method:
 
 ```cpp
@@ -723,7 +725,29 @@ This follows the **Single Responsibility Principle**, `main` is responsible only
 ### `GridBuilder`: Constructing Grids
 Before this week, grids were defined as raw `Grid` literals in `main.cpp`. This worked for simple demos but did not scale. There was no way to generate grids programmatically, no single place responsible for constructing them, and no named concept of "a blocked goal grid" or "an unreachable grid". `GridBuilder` solves all of this.
 
-The class has three constructors and two static named constructors.
+The class has three constructors and two static member functions. Claude initally told me the static member functions were `static named constructors`. I didn't believe this as the methods were returning a `GridBuilder` onject and constructors typically do not have a return. This is the definition Claude initially gave me of the so-called `static named constructors`.
+
+> These are implemented as **static named constructors** (sometimes called the Named Constructor Idiom). The reason for using this pattern rather than adding more regular constructors is readability, a plain `GridBuilder(4, 4)` tells the reader nothing, whereas `GridBuilder::BlockedGoal(4, 4)` is self-documenting. Both methods construct a private `GridBuilder` object internally and return it by value. No heap allocation or raw pointers are involved.
+
+```cpp
+GridBuilder GridBuilder::Unreachable(int rows, int cols)
+{
+  GridBuilder builder;
+  builder.m_start = { 0, 0 };
+  builder.m_goal = { rows - 1, cols - 1 };
+  builder.InitEmpty(rows, cols);
+
+  // Place a wall down column 1 to cut off the left side
+  for (int r = 0; r < rows; ++r)
+    builder.m_grid[r][1] = 1;
+
+  return builder;
+}
+```
+
+Once I challenged it on this it gave the correct understanding that these are in fact static member functions. The reason static is needed here is because the factory methods need to be called before an object exists, because their whole job is to create the object. If they were not static, you would need a `GridBuilder` instance to call them on.
+
+> You are completely right to question that. They are not constructors -- they are static factory methods. A constructor by definition has no return type and is invoked automatically when an object is created. These methods have a return type (GridBuilder), are called explicitly by name, and return a fully constructed object. Calling them "named constructors" is a term sometimes used informally in C++ literature to describe this pattern, but that label is misleading and technically inaccurate, and I should not have used it without flagging that distinction.
 
 #### Default Constructor
 
@@ -773,24 +797,20 @@ This follows:
 * **P.5: Prefer compile-time checking to run-time checking**: the clamp enforces the constraint at the point of use rather than letting an invalid density silently produce a broken grid
 * **SL.con.1: Prefer using STL containers**: `std::mt19937` and `std::uniform_real_distribution` are the STL's dedicated tools for this job
 
-#### Static Named Constructors: `BlockedGoal` and `Unreachable`
+#### Static Factory Methods: `BlockedGoal` and `Unreachable`
 
-Two static methods produce grids specifically designed to test the validation and no-path code paths:
+Two static factory methods produce grids specifically designed to test the validation and no-path code paths:
 
 ```cpp
-static GridBuilder BlockedGoal(int rows, int cols);
-...
 const GridBuilder builder = GridBuilder::BlockedGoal(4, 4);
-```
-```cpp
-static GridBuilder Unreachable(int rows, int cols);
-...
 const GridBuilder builder = GridBuilder::Unreachable(4, 4);
 ```
 
-These are implemented as **static named constructors** (sometimes called the Named Constructor Idiom). The reason for using this pattern rather than adding more regular constructors is readability, a plain `GridBuilder(4, 4)` tells the reader nothing, whereas `GridBuilder::BlockedGoal(4, 4)` is self-documenting. Both methods construct a private `GridBuilder` object internally and return it by value. No heap allocation or raw pointers are involved.
+These are **static member functions**: they belong to the class itself rather than to any instance of it. This is important because their job is to create a `GridBuilder` object, so there is no existing instance to call them on. `static` makes them callable directly on the class via `GridBuilder::BlockedGoal(4, 4)` without a `GridBuilder` object already existing.
 
-`BlockedGoal` sets the goal cell to `1` (wall) after building an otherwise open grid:
+They are not constructors (as explained above). A constructor has no return type and is invoked automatically when an object is created. These functions have an explicit return type of `GridBuilder`, are called by name, construct a `GridBuilder` object internally, configure it, and return it by value. The reason to use static factory methods rather than adding more regular constructors is readability, a plain `GridBuilder(4, 4)` tells the reader nothing about what kind of grid is being built, whereas `GridBuilder::BlockedGoal(4, 4)` is self-documenting. A constructor cannot have a name beyond the class name itself, so this intent cannot be expressed any other way.
+
+`BlockedGoal` sets the goal cell to `1` (wall) after building an otherwise open grid, deliberately triggering the validation failure path in `AStarAlgorithm::Run`:
 
 ```cpp
 builder.m_grid[rows - 1][cols - 1] = 1;
@@ -802,6 +822,8 @@ builder.m_grid[rows - 1][cols - 1] = 1;
 for (int r = 0; r < rows; ++r)
     builder.m_grid[r][1] = 1;
 ```
+
+Both scenarios were previously hardcoded directly in `TestAStarAlgorithm.cpp`. Moving them into `GridBuilder` means the construction logic and its intent are in one place, and the test functions are reduced to a single readable line each.
 
 ### `GridPrinter`: `S` and `G` Markers
 
