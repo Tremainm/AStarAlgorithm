@@ -481,6 +481,67 @@ struct OpenNode
 
 Previously, `OpenNode` was a local struct inside the `AStarSearch` function body, making it invisible to tests and unable to be reused. Moving it to header scope solves both problems. The `operator>` overload enables the use of `std::greater<OpenNode>` as the priority queue comparator, which is more idiomatic than a separate comparator struct and requires no extra code.
 
+**Operator Overloading**
+
+`operator>` is a comparison operator overload. When two `OpenNode` values are compared with `>`, this function runs. It compares only the `f` value of each node, the total estimated cost. Two nodes are compared by the question: "does this node have a higher f-cost than the other?"
+
+The overload is used here, in `AStarSearch.cpp`:
+
+```cpp
+std::priority_queue, std::greater> open;
+```
+
+`std::priority_queue` takes three template arguments:
+
+- **`OpenNode`**: the type of element stored
+- **`std::vector<OpenNode>`**: the underlying container
+- **`std::greater<OpenNode>`**: the comparator that decides ordering
+
+`std::greater<OpenNode>` is a standard library comparator that calls `operator>` on two elements to decide which one should come first. By providing it as the third argument, the priority queue is turned into a **min-heap**, the node with the **lowest** `f` value sits at the top and is popped first.
+
+**Why This Matters for A\***
+
+By default, `std::priority_queue` is a max-heap, meaning the largest value comes out first. A* needs the opposite, it always wants to explore the node with the lowest estimated total cost (`f`) next, because that is the most promising path. Without this comparator, the queue would pop the worst node first and the algorithm would not work correctly.
+
+The chain is:
+
+```
+std::greater<OpenNode>
+    calls operator>(a, b)
+        compares a.f > b.f
+            lowest f floats to the top of the queue
+```
+
+You can see this in action in the main loop. `open.top()` always returns the node with the lowest `f`:
+
+```cpp
+const OpenNode current = open.top();
+open.pop();
+```
+
+And new nodes are pushed with their calculated `f` value, which the queue automatically positions correctly:
+
+```cpp
+const int f = tentativeG + Manhattan(neighbour, goal);
+open.push(OpenNode{ f, tentativeG, nIdx });
+```
+
+Every `push` triggers a reorder using `operator>` internally to maintain the heap property, so `top()` is always the cheapest unvisited node.
+
+**Why Use `operator>` Rather Than a Separate Comparator Struct**
+
+The original approach recommended by ChatGPT was to define a separate comparator struct:
+
+```cpp
+struct CompareBySmallestF {
+    bool operator()(const OpenNode& a, const OpenNode& b) const noexcept { return a.f > b.f; }
+};
+
+std::priority_queue, CompareBySmallestF> open;
+```
+
+This works, but it adds an extra type that exists solely to describe how `OpenNode` values should be ordered. Since ordering by `f` is the only natural way to compare two `OpenNode` values anyway, it makes more sense to define that comparison directly on the struct with `operator>` and use the standard `std::greater<OpenNode>`. The intent is clearer, there is less code, and `std::greater` is immediately recognisable as "smallest first" to any C++ programmer reading the code. It also made more sense
+
 **Preconditions use `assert` instead of repeated guard clauses:**
 
 ```cpp
