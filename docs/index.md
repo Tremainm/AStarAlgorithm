@@ -32,8 +32,9 @@ In my header file, within my header guard, I created a class called `AStarAlgori
 </p>
 
 In `AStarAlgorithm.cpp`, I `#include "AStarAlgorithm.h"` to have access to the class and methods. In `AStarGrid`, I create a 2-d vector which creates a grid made up of `1`'s and `0`'s, `1` being a blocked node and `0` being an unblocked node. I use vectors as they are the preferred method for storing a range of elements. Vectors are preferred over arrays as vectors can be resized but both are preferred over C arrays to avoid memory bugs. As outlined in the `C++ Core Guidelines`, vectors should be used by default unless you have a reason to use a different container<br>
-- **SL.con.1: Prefer using STL array or vector instead of a C array**
-- **SL.con.2: Prefer using STL vector by default unless you have a reason to use a different container**<br>
+> SL.con.1: Prefer using STL array or vector instead of a C array
+
+> SL.con.2: Prefer using STL vector by default unless you have a reason to use a different container
 
 I print out the grid with blocked nodes being represented by `#` and unblocked nodes being represented by `.`<br>
 
@@ -96,6 +97,8 @@ In week 3, I focused my work on creating grid and cell validation methods, the m
 ### Validation Methods
 Before running A*, I added a small set of validation methods to make sure the grid and inputs are valid. This prevents crashes (like out-of-range indexing) and avoids wasting time running the algorithm on impossible setups.
 
+#### IsValid
+
 <p align="center">
 <img style="max-width: 80%; height: auto;" alt="IsValidGrid()" src="images/IsValidGrid.png" />
 </p>
@@ -108,6 +111,8 @@ The grid contains data:
 **Why it's used**<br>
 A* relies on accessing `grid[0]` and `grid[r][c]`. If the grid is empty, those accesses would crash. It’s an early “sanity check” before doing anything else.
 
+#### InBounds
+
 <p align="center">
 <img style="max-width: 80%; height: auto;" alt="InBounds()" src="images/InBounds.png" />
 </p>
@@ -119,6 +124,8 @@ The Cell coordinator `p` is inside the grid:
 
 **Why it’s used**<br>
 It prevents out-of-bounds indexing when reading `grid[p.r][p.c]` and ensures the start/goal (and any checked positions) are valid locations on the grid. The `name` parameter (“Start”, “Goal”) makes error messages clearer.
+
+#### IsNotBlocked
 
 <p align="center">
 <img style="max-width: 80%; height: auto;" alt="IsNotBlocked()" src="images/IsNotBlocked.png" />
@@ -179,7 +186,7 @@ The first thing `AStarSearch()` does is run the three validation checks before a
 <img style="max-width: 80%; height: auto;" alt="Grid Size & Flattening" src="images/grid-size.png" />
 </p>
 
-Here I read the grid dimensions and calculate the total number of cells. The reason I store `total` is that all of the A\* state arrays (`bestG`, `parent`, `closed`) are 1D vectors of size `total`. Working with 1D arrays is simpler and more cache-friendly than nested 2D structures.
+Here I read the grid dimensions and calculate the total number of cells. The reason I store `total` is that all of the A\* state arrays (`bestG`, `parent`, `closed`) are 1D vectors of size `total`. Working with 1D arrays is simpler and more cache-friendly than nested 2D structures. This was a nice addition from Claude.
 
 #### Step 3: Two Lambdas: Mapping 2D to 1D
 
@@ -372,7 +379,9 @@ This follows:
 
 > **T.1: Use aliases to express semantic intent and avoid repeating complex types**
 
-All of these issues are exactly what motivated the refactor in week 4. Getting the algorithm working first was the right move,  but once it worked, taking the time to improve the structure made the code genuinely better: easier to test, easier to extend, and much more closely aligned with what modern C++ should look like.
+All of these issues are exactly what motivated the refactor in week 4. Getting the algorithm working first was the right move for me,  but once it worked, taking the time to improve the structure made the code genuinely better: easier to test, easier to extend, and much more closely aligned with what modern C++ should look like.
+
+**NOTE:** The code from Week 3 will change from week 4 onwards. The Week 3 section is just important to show my progression through project development.
 
 ---
 
