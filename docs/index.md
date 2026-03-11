@@ -952,4 +952,6 @@ The length of Search is a known limitation worth acknowledging in your blog rath
 
 It shows that even though `Search()` breaks *some* modern C++ practices, it is also important to think about making sure procedural algorithms have enough clarity so people can understand the code. Since `Search()` is well commented, the variable names make sense, and sections are split up based on what logic they implement, it is perfectly acceptable to keep it as a long function.
 
+### A General Code review
+
 ## Week 6
