@@ -629,4 +629,167 @@ This follows the **Single Responsibility Principle**: each class in the middle r
 
 ## Week 5
 
+In week 5, I extended the project in three areas: separating all test scenarios into dedicated `TestAStarAlgorithm` files to keep `main.cpp` as lean as possible, introducing a `GridBuilder` class with multiple constructors to handle all grid construction and show off the use of constructors, and updating `GridPrinter` to mark the start and goal cells visually with `S` and `G` in all output. I also added `operator==` to `Cell`. This equality operator overload will be useful for comparing if a `Cell` is a start or goal cell in some test methods and will also show off more uses of operator overloading.
+
+### `TestAStarAlgorithm.h` and `TestAStarAlgorithm.cpp`: Separating Test Scenarios
+Previously, all scenario logic lived directly in `main.cpp`. The project brief requires `main` to be kept as empty as possible, so the scenarios have been moved into their own dedicated files.
+
+`TestAStarAlgorithm.h` declares one entry point and a function for each individual scenario:
+
+```cpp
+void RunAllTests();
+
+void TestManualWallsGrid();
+void TestAutoGrid();
+void TestBlockedGoal();
+void TestUnreachableGoal();
+```
+
+`main.cpp` is now three meaningful lines:
+
+```cpp
+#include "TestAStarAlgorithm.h"
+
+int main()
+{
+    RunAllTests();
+    return 0;
+}
+```
+
+This follows the **Single Responsibility Principle**, `main` is responsible only for starting the program, not for defining what the program does. Each individual scenario function in `TestAStarAlgorithm.cpp` is responsible for one test case. Adding a new scenario means adding one function in one file, with no changes to `main.cpp` at all.
+
+### `GridBuilder`: Constructing Grids
+Before this week, grids were defined as raw `Grid` literals in `main.cpp`. This worked for simple demos but did not scale. There was no way to generate grids programmatically, no single place responsible for constructing them, and no named concept of "a blocked goal grid" or "an unreachable grid". `GridBuilder` solves all of this.
+
+The class has three constructors and two static named constructors.
+
+#### Default Constructor
+
+```cpp
+GridBuilder();
+...
+GridBuilder builder;
+```
+
+Produces the original hardcoded 4x4 demo grid with `Start = (0,0)` and `Goal = (3,3)`. This means the original test case still works with no raw data in the calling code.
+
+#### Manual Walls Constructor
+
+```cpp
+GridBuilder(int rows, int cols, Cell start, Cell goal, const std::vector<Cell>& walls);
+...
+GridBuilder builder(
+    5, 5,
+    Cell{ 0, 0 },
+    Cell{ 4, 4 },
+    { { 1, 1 }, { 1, 2 }, { 1, 3 }, { 3, 1 }, { 3, 2 }, { 3, 3 } }
+);
+```
+
+Takes rows, cols, start, goal, and a list of wall `Cell` positions. The constructor protects against two error cases: walls that are out of bounds (silently skipped with a warning), and walls that overlap the start or goal (also skipped with a warning). This is where `operator==` on `Cell` is used. The check `wall == m_start || wall == m_goal` is a clean, readable expression that would have required a manual row and column comparison without it. The `= default` is C++20 shorthand that tells the compiler to generate the usual equality operator that compares each member. This allows me to compare two `Cell`s without having to write comparison logic.
+
+#### Auto-Generated Walls Constructor
+
+```cpp
+GridBuilder(int rows, int cols, float wallDensity);
+...
+GridBuilder builder(8, 8, 0.3f);
+```
+
+Takes rows, cols, and a `float` wall density between `0.0` and `1.0`. This uses `std::mt19937` seeded by `std::random_device`, the correct modern C++ approach to random number generation, replacing the old `rand()` / `srand()` pattern. `std::uniform_real_distribution<float>` ensures each cell has an independent probability of being blocked equal to the density value. The start and goal are always kept clear. Wall density is clamped to a maximum of `0.9` using `std::clamp` (C++17) to prevent the generator from producing a grid that is impossible to solve.
+
+```cpp
+wallDensity = std::clamp(wallDensity, 0.0f, 0.9f);
+
+std::random_device rd;
+std::mt19937 rng{ rd() };
+std::uniform_real_distribution dist{ 0.0f, 1.0f };
+```
+
+This follows:
+
+* **P.5: Prefer compile-time checking to run-time checking**: the clamp enforces the constraint at the point of use rather than letting an invalid density silently produce a broken grid
+* **SL.con.1: Prefer using STL containers**: `std::mt19937` and `std::uniform_real_distribution` are the STL's dedicated tools for this job
+
+#### Static Named Constructors: `BlockedGoal` and `Unreachable`
+
+Two static methods produce grids specifically designed to test the validation and no-path code paths:
+
+```cpp
+static GridBuilder BlockedGoal(int rows, int cols);
+...
+const GridBuilder builder = GridBuilder::BlockedGoal(4, 4);
+```
+```cpp
+static GridBuilder Unreachable(int rows, int cols);
+...
+const GridBuilder builder = GridBuilder::Unreachable(4, 4);
+```
+
+These are implemented as **static named constructors** (sometimes called the Named Constructor Idiom). The reason for using this pattern rather than adding more regular constructors is readability, a plain `GridBuilder(4, 4)` tells the reader nothing, whereas `GridBuilder::BlockedGoal(4, 4)` is self-documenting. Both methods construct a private `GridBuilder` object internally and return it by value. No heap allocation or raw pointers are involved.
+
+`BlockedGoal` sets the goal cell to `1` (wall) after building an otherwise open grid:
+
+```cpp
+builder.m_grid[rows - 1][cols - 1] = 1;
+```
+
+`Unreachable` places a full column of walls at column 1, cutting the grid in two. The start is on the left side and the goal is on the right, so no path exists even though the goal cell itself is open:
+
+```cpp
+for (int r = 0; r < rows; ++r)
+    builder.m_grid[r][1] = 1;
+```
+
+### `GridPrinter`: `S` and `G` Markers
+
+`PrintGrid` and `PrintGridWithPath` both now take `Cell start` and `Cell goal` as parameters and render those positions as `S` and `G` respectively. Previously, the grid was printed as a plain pattern of `.` and `#` with no visual indication of where the algorithm was actually starting or heading.
+
+```cpp
+void PrintGrid(const Grid& grid, Cell start, Cell goal) const;
+void PrintGridWithPath(const Grid& grid, const std::vector& path, Cell start, Cell goal) const;
+```
+
+Inside each function, the check runs before the wall/open check:
+
+```cpp
+if (current == start)
+    std::cout << "S ";
+else if (current == goal)
+    std::cout << "G ";
+else if (onPath)
+    std::cout << "* ";
+else
+    std::cout << (grid[r][c] == 0 ? '.' : '#') << ' ';
+```
+
+The priority order matters: `S` and `G` are always rendered regardless of whether they happen to also be on the path, which ensures the start and goal are always clearly visible in both the initial grid and the path overlay. The result looks like this:
+
+```
+Grid:
+S . . .
+. # . #
+. . # #
+# . . G
+
+Grid with path ('*'):
+S . . .
+* # . #
+* * # #
+# * * G
+```
+
+This change also required updating `AStarAlgorithm::Run()` to forward `start` and `goal` through to both printer calls.
+
+### `Cell`: `operator==` Added
+
+```cpp
+bool operator==(const Cell&) const = default;
+```
+
+The defaulted equality operator was added to `Cell`. It has two uses: the wall overlap check in `GridBuilder`'s manual walls constructor, and the `S`/`G` rendering logic inside `GridPrinter`. Using `= default` instructs the compiler to generate the comparison from the member fields automatically, equivalent to `return r == other.r && c == other.c`, following:
+
+* **C.80: Use `= default` if you have to be explicit about using the default semantics**: the compiler-generated version is correct and there is no reason to write it manually
+
 ## Week 6
