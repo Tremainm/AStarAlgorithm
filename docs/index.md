@@ -954,4 +954,116 @@ It shows that even though `Search()` breaks *some* modern C++ practices, it is a
 
 ### A General Code review
 
-## Week 6
+Beyond the specific class-level changes made each week, there are a number of smaller but important keywords and standard library tools used consistently throughout the codebase. This section looks at those in detail.
+
+#### `const`
+
+`const` appears in two distinct contexts in the project.
+
+**`const` on method declarations**
+
+Every method across `GridValidator`, `GridPrinter`, and `AStarSearch` is marked `const`:
+
+```cpp
+bool IsValidGrid(const Grid& grid) const;
+std::vector Search(const Grid& grid, Cell start, Cell goal) const;
+int Manhattan(Cell a, Cell b) const noexcept;
+```
+
+The `const` after the parameter list means the method promises not to modify any member variables of the class. None of these methods have any reason to change the state of the object they are called on, `GridValidator` only reads the grid, `AStarSearch` only reads and returns a path. Marking them `const` is the honest declaration of that fact. It also means these methods can be called on `const` instances of the class, which is good practice to follow:
+
+- **Con.2: By default, make member functions `const`**
+
+**`const` on local variables**
+
+Inside `Search()`, almost every local variable is declared `const`:
+
+```cpp
+const int rows = static_cast(grid.size());
+const int cols = static_cast(grid[0].size());
+const int startIdx = toIndex(start);
+const OpenNode current = open.top();
+const Cell curCell = toCell(current.idx);
+const int tentativeG = bestG[current.idx] + kMoveCost;
+```
+
+Once `rows`, `cols`, or `startIdx` are calculated, they never change. Declaring them `const` makes that explicit. If I accidentally tried to reassign one of these the compiler would catch it immediately. It also makes the code easier to read, any variable without `const` is one that is expected to change, so `bestG`, `parent`, and `closed` standing out as non-`const` immediately signals that they are the mutable state of the algorithm.
+
+#### `constexpr`
+
+`constexpr` goes one step further than `const`. Where `const` means a value will not change at runtime, `constexpr` means the value is known and fixed at **compile time**. The compiler can substitute the value directly wherever it is used, with no runtime cost at all.
+
+In `Search()` there are three `constexpr` declarations:
+
+```cpp
+constexpr int kMoveCost = 1;
+constexpr int dr[4] = { -1,  1,  0,  0 };
+constexpr int dc[4] = {  0,  0, -1,  1 };
+```
+
+`kMoveCost` is always `1`: the cost of moving from one cell to any adjacent cell never changes regardless of which grid is passed in. The direction arrays `dr` and `dc` are fixed representations of up, down, left, and right. They are the same for every run of the program. There is no reason for these to exist as runtime variables.
+
+Using `constexpr` here follows:
+
+- **P.5: Prefer compile-time checking to run-time checking**: if something can be known at compile time, it should be expressed that way
+- **Con.5: Use `constexpr` for values that can be computed at compile time**
+
+#### `std::numeric_limits<int>::max()`
+
+```cpp
+const int INF = std::numeric_limits::max();
+```
+
+`INF` is used to initialise `bestG`, the array that tracks the best known cost to reach each node. Every node starts at `INF` meaning "not yet reached". As the algorithm finds paths, those values get updated to real costs.
+
+The reason I use `std::numeric_limits<int>::max()` rather than just writing a large number like `99999` is correctness and portability. `std::numeric_limits<int>::max()` is the actual largest value an `int` can hold on whatever system the code runs on. A hardcoded large number might seem safe but could be exceeded on certain grids or cause silent bugs. `std::numeric_limits` is the standard library's way of expressing type boundaries without guessing.
+
+It comes from `<limits>`, which is included at the top of `AStarSearch.cpp`:
+
+```cpp
+#include 
+```
+
+#### `<cassert>` and `assert()`
+
+```cpp
+#include 
+
+assert(!grid.empty() && !grid[0].empty() && "Search called with empty grid");
+assert(grid[start.r][start.c] == 0 && "Start cell is blocked");
+```
+
+`<cassert>` provides the `assert()` macro. An assertion is a check that is expected to always be true. If it is false, the program immediately stops with a message pointing to the exact line that failed. This is a debugging tool, assertions are compiled away entirely in release builds when `NDEBUG` is defined, so they add zero overhead in production.
+
+The reason I used `assert` here rather than `if`/`return` guards is that `AStarAlgorithm::Run()` already validates all inputs before calling `Search()`. By the time `Search()` is called, the grid and cells have already been checked. The `assert`s are not defensive runtime checks, they are a contract: "if you are calling this function, these conditions must already be true. If they are not, something has gone wrong in the calling code."
+
+#### `<unordered_set>` in `GridPrinter`
+
+```cpp
+#include 
+
+std::unordered_set pathSet;
+pathSet.reserve(path.size());
+for (const auto& p : path)
+    pathSet.insert(p.r * cols + p.c);
+```
+
+I used `std::unordered_set` in `PrintGridWithPath()` to build a fast lookup of which cells are on the path. The alternative would be to check if each grid cell appears in the `path` vector using a linear scan, which gets slower the longer the path is. `unordered_set` gives O(1) average lookup per cell regardless of how many cells are in it.
+
+The `reserve()` call pre-allocates enough space for exactly as many entries as there are path cells. Without it, the set would resize itself internally as entries are inserted. Pre-allocating avoids that overhead.
+
+To check if a cell is on the path, I use `contains()`:
+
+```cpp
+const bool onPath = pathSet.contains(r * cols + c);
+```
+
+`contains()` was introduced in **C++20** as a cleaner alternative to the older pattern of `find() != end()`. Both do the same thing but `contains()` reads as plain English.
+
+## Wrap-up & Demo
+
+## Limitations Encountered
+
+## Project Management
+
+## Reflection
