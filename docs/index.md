@@ -28,7 +28,7 @@ To start coding, I created an OO (Object Oriented) C++ project which consisted o
 In my header file, within my header guard, I created a class called `AStarAlgorithm`. I will use this class to hold `public` and `private` member functions. I will use `private` for data to ensure data protection. I created a `void AStarGrid();` function declaration and in my `AStarAlgorithm.cpp` file, I will have the function definition.
 
 <p align="center">
-<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="assests/images/AStarAlgorithm.h-Initial-code.png" />
+<img width="290" height="410" alt="AStarAlgorithm h-Initial-code" src="images/AStarAlgorithm.h-Initial-code.png" />
 </p>
 
 In `AStarAlgorithm.cpp`, I `#include "AStarAlgorithm.h"` to have access to the class and methods. In `AStarGrid`, I create a 2-d vector which creates a grid made up of `1`'s and `0`'s, `1` being a blocked node and `0` being an unblocked node. I use vectors as they are the preferred method for storing a range of elements. Vectors are preferred over arrays as vectors can be resized but both are preferred over C arrays to avoid memory bugs. As outlined in the `C++ Core Guidelines`, vectors should be used by default unless you have a reason to use a different container<br>
@@ -38,7 +38,7 @@ In `AStarAlgorithm.cpp`, I `#include "AStarAlgorithm.h"` to have access to the c
 I print out the grid with blocked nodes being represented by `#` and unblocked nodes being represented by `.`<br>
 
 <p align="center">
-<img alt="AStarAlgorithm.cpp-Initial-code" src="assests/images/Astar.cpp-initial-code.png" /> <img alt="AStarAlgorithm.cpp-Initial-grid" src="assests/images/Astar.cpp-initial-grid.png" />
+<img alt="AStarAlgorithm.cpp-Initial-code" src="images/Astar.cpp-initial-code.png" /> <img alt="AStarAlgorithm.cpp-Initial-grid" src="images/Astar.cpp-initial-grid.png" />
 </p>
 
 Then in my `main.cpp`, I create an object of class `AStarAlgorithm` and call the `AStarGrid` method to actually display it. In week 2, I will be looking at UML diagrams and how I can design my code before I start developing.
@@ -65,14 +65,14 @@ The main notations I will use are `+` and `-`.
 
 ### Initial UML Class Diagram
 <p align="center">
-<img width="290" height="410" alt="Initial UML Class Diagram" src="assests/images/UML-1.png" />
+<img width="290" height="410" alt="Initial UML Class Diagram" src="images/UML-1.png" />
 </p>
 
 This was the initial UML class diagram I had for my week 1 code. It is obvious from the image that I needed to spend some time developing my project design. I want to have methods that check the validity of my grid, check if a cell is in bounds, and checks if a cell is blocked. I will add them as private methods. I also want a variable that will hold the current coordinates of the cell the algorithm is in. I will use a struct for this to hold the row and column coordinates. An example use of a struct on C.2 C++ Core guidelines shows it being used when members can vary independently.
 - **C.2: Use class if the class has an invariant; use struct if the data members can vary independently**<br>
 
 <p align="center">
-<img width="400" height="600" alt="C++ ISO C.2" src="assests/images/C.2-struct1.png" />
+<img width="400" height="600" alt="C++ ISO C.2" src="images/C.2-struct1.png" />
 </p>
 
 I also know I will want a method to use the manhattan distance calculation. This is a heuristic calculation used to approximate `h`. It is described as:
@@ -83,7 +83,7 @@ on the GeeksfoGeeks reference <a href="https://www.geeksforgeeks.org/dsa/a-searc
 
 I also want a method that will complete the actual A* algorithm search of the grid. This is where I will do my grid validation checking, run my manhattan calculation, and find the best path from start to goal. By the end of week 2, This is what my UML Class Diagram looks like
 <p align="center">
-<img width="600" height="800" alt="UML Class Diagram" src="assests/images/UML-2.png" />
+<img width="600" height="800" alt="UML Class Diagram" src="images/UML-2.png" />
 </p>
 
 I'm sure this will develop over the weeks but it is a good starting point for now.
@@ -97,7 +97,7 @@ In week 3, I focused my work on creating grid and cell validation methods, the m
 Before running A*, I added a small set of validation methods to make sure the grid and inputs are valid. This prevents crashes (like out-of-range indexing) and avoids wasting time running the algorithm on impossible setups.
 
 <p align="center">
-<img alt="IsValidGrid()" src="assests/images/IsValidGrid.png" />
+<img alt="IsValidGrid()" src="images/IsValidGrid.png" />
 </p>
 
 **What it checks**<br>
@@ -109,7 +109,7 @@ The grid contains data:
 A* relies on accessing `grid[0]` and `grid[r][c]`. If the grid is empty, those accesses would crash. It’s an early “sanity check” before doing anything else.
 
 <p align="center">
-<img alt="InBounds()" src="assests/images/InBounds.png" />
+<img alt="InBounds()" src="images/InBounds.png" />
 </p>
 
 **What it checks**<br>
@@ -121,7 +121,7 @@ The Cell coordinator `p` is inside the grid:
 It prevents out-of-bounds indexing when reading `grid[p.r][p.c]` and ensures the start/goal (and any checked positions) are valid locations on the grid. The `name` parameter (“Start”, “Goal”) makes error messages clearer.
 
 <p align="center">
-<img alt="IsNotBlocked()" src="assests/images/IsNotBlocked.png" />
+<img alt="IsNotBlocked()" src="images/IsNotBlocked.png" />
 </p>
 
 **What it checks**<br>
@@ -140,7 +140,7 @@ If the cell at `p` is walkable.
 
 ### Initial Research and Understanding of Manhattan Calculation
 <p align="center">
-<img width="500" height="700" alt="UML Class Diagram" src="assests/images/manhattan-template.jpg" />
+<img width="500" height="700" alt="UML Class Diagram" src="images/manhattan-template.jpg" />
 </p>
 
 In my A* implementation, I use the **Manhattan distance** as the heuristic function h(n). The heuristic estimates how far a node is from the goal. The A* formula is **`f(n) = g(n) + h(n)`**
@@ -152,7 +152,7 @@ The Manhattan distance is what I use for **`h(n)`**.
 
 ### Manhattan Implementation
 <p align="center">
-<img alt="Manhattan" src="assests/images/Manhattan.png" />
+<img alt="Manhattan" src="images/Manhattan.png" />
 </p>
 
 The above method calculates the Manhattan distance between two points on a grid. If `a` is the current node and `b` is the goal node, Then the function returns the total number of horizontal and vertical steps required to move from `a` to `b`.
@@ -168,7 +168,7 @@ They are added because, in a 4-direction grid, you can only move up, down, left,
 #### Step 1: Early Validation
 
 <p align="center">
-<img alt="Validation Checking" src="assests/images/validation-checking.png" />
+<img alt="Validation Checking" src="images/validation-checking.png" />
 </p>
 
 The first thing `AStarSearch()` does is run the three validation checks before any algorithm logic starts. If the grid is empty, if start/goal are outside the grid, or if start/goal are walls, the method returns an empty vector immediately. This keeps A\* focused purely on searching — it should never have to guard against invalid data mid-loop.
@@ -176,7 +176,7 @@ The first thing `AStarSearch()` does is run the three validation checks before a
 #### Step 2: Grid Size and Flattening Setup
 
 <p align="center">
-<img alt="Grid Size & Flattening" src="assests/images/grid-size.png" />
+<img alt="Grid Size & Flattening" src="images/grid-size.png" />
 </p>
 
 Here I read the grid dimensions and calculate the total number of cells. The reason I store `total` is that all of the A\* state arrays (`bestG`, `parent`, `closed`) are 1D vectors of size `total`. Working with 1D arrays is simpler and more cache-friendly than nested 2D structures.
@@ -192,7 +192,7 @@ These two lambdas convert between a 2D cell coordinate and a flat 1D index. `toI
 
 **Start and Goals Indices**
 <p align="center">
-<img alt="Start & Goal indices" src="assests/images/start_goal-index.png" />
+<img alt="Start & Goal indices" src="images/start_goal-index.png" />
 </p>
 
 Here we are using the lambdas to convert start and goal to the flattened index form so the algorithm can use them for arrays and queue items.
@@ -200,7 +200,7 @@ Here we are using the lambdas to convert start and goal to the flattened index f
 #### Step 4: Core A\* Data Structures
 
 <p align="center">
-<img alt="Data Structs" src="assests/images/data-structs.png" />
+<img alt="Data Structs" src="images/data-structs.png" />
 </p>
 
 These three vectors are the core state of the algorithm:
@@ -212,7 +212,7 @@ These three vectors are the core state of the algorithm:
 #### Step 5: The Open Node and Priority Queue
 
 <p align="center">
-<img alt="Open Node and Priority Queue" src="assests/images/OpenNode-priority_queue.png" />
+<img alt="Open Node and Priority Queue" src="images/OpenNode-priority_queue.png" />
 </p>
 
 `OpenNode` is what gets stored in the priority queue. It holds the total estimated cost `f = g + h`, the actual cost so far `g`, and the flattened cell index. The comparator `CompareBySmallestF` makes `std::priority_queue` behave as a **min-heap** by returning `a.f > b.f`. This means the node with the lowest `f` is always at the top and is popped first, which is exactly what A\* requires.
@@ -220,7 +220,7 @@ These three vectors are the core state of the algorithm:
 #### Step 6: Initialising the Search
 
 <p align="center">
-<img alt="Initial Search" src="assests/images/init_search.png" />
+<img alt="Initial Search" src="images/init_search.png" />
 </p>
 
 The search starts by setting the start node's `g` cost to `0` and pushing it into the open queue with `f = 0 + h = Manhattan(start, goal)`. This is the only node we know anything about at the start, so it's the first candidate to be expanded.
@@ -228,7 +228,7 @@ The search starts by setting the start node's `g` cost to `0` and pushing it int
 #### Step 7: 4-Direction Movement Vectors
 
 <p align="center">
-<img alt="4-direction movement" src="assests/images/4dir-movement.png" />
+<img alt="4-direction movement" src="images/4dir-movement.png" />
 </p>
 
 These two arrays represent the four directions: up, down, left, right. By looping `k` from 0 to 3 and applying `dr[k]` and `dc[k]` to the current cell, I generate all four neighbours cleanly without repeating code four times.
@@ -236,7 +236,7 @@ These two arrays represent the four directions: up, down, left, right. By loopin
 #### Step 8: Path Reconstruction Lambda
 
 <p align="center">
-<img alt="Path reconstruction" src="assests/images/path-reconstruct.png" />
+<img alt="Path reconstruction" src="images/path-reconstruct.png" />
 </p>
 
 A\* doesn't store the full path while it searches, it only stores "where I came from" at each node. When the goal is reached, this lambda walks backwards through the `parent` array from goal to start, building up a vector of cells, then reverses it to get the correct start to goal order. This is memory-efficient because we don't maintain a growing path list throughout the search.
@@ -244,7 +244,7 @@ A\* doesn't store the full path while it searches, it only stores "where I came 
 #### Step 9: The Main Loop
 
 <p align="center">
-<img alt="Main Loop" src="assests/images/AStar-while-loop.png" />
+<img alt="Main Loop" src="images/AStar-while-loop.png" />
 </p>
 
 The main `while` loop runs as long as there are nodes to explore. On each iteration it pops the node with the lowest `f` value from the priority queue.
@@ -279,7 +279,7 @@ If the node has already been fully expanded, skip it. Otherwise mark it as close
 #### Step 10: Expanding Neighbours
 
 <p align="center">
-<img alt="Neighbours" src="assests/images/dir_for-loop.png" />
+<img alt="Neighbours" src="images/dir_for-loop.png" />
 </p>
 
 For each of the four neighbours of the current cell, the algorithm applies a series of filters before considering it:
@@ -639,7 +639,7 @@ The common thread across all of these removals is the same: each feature that wa
 
 ### Updated UML Class Diagram
 <p align="center">
-<img alt="Neighbours" src="assests/images/UMLDiagram_w4.svg" width="700">
+<img alt="Neighbours" src="images/UMLDiagram_w4.svg" width="700">
 </p>
 
 The updated UML class diagram shows how the project has been split from a single monolithic class into six separate components. There are four classes, one struct used as a type alias, and one plain struct. Below is a breakdown of each component and the relationships between them.
