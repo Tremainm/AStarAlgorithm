@@ -699,6 +699,8 @@ This follows the **Single Responsibility Principle**: each class in the middle r
 - Used `std::ranges::reverse()` for idiomatic path reconstruction (C++20)
 - Made `Run()` accept parameters instead of hardcoding the grid, making the class reusable
 
+---
+
 ## Week 5
 
 In week 5, I extended the project in three areas: separating all test scenarios into dedicated `TestAStarAlgorithm` files to keep `main.cpp` as lean as possible, introducing a `GridBuilder` class with multiple constructors to handle all grid construction and show off the use of constructors, and updating `GridPrinter` to mark the start and goal cells visually with `S` and `G` in all output. I also added `operator==` to `Cell`. This equality operator overload will be useful for comparing if a `Cell` is a start or goal cell in some test methods and will also show off more uses of operator overloading.
@@ -1060,9 +1062,133 @@ const bool onPath = pathSet.contains(r * cols + c);
 
 `contains()` was introduced in **C++20** as a cleaner alternative to the older pattern of `find() != end()`. Both do the same thing but `contains()` reads as plain English.
 
+---
+
 ## Wrap-up & Demo
 
+By the end of the project, the A* algorithm is fully implemented and running across five test scenarios. The codebase has grown from a single monolithic class into a modular, multi-file project that follows modern C++ practices and the C++ Core Guidelines throughout. Below is a walkthrough of the full flow from entry point to output, followed by the five scenarios in action.
+
+### How the Program Flows
+ 
+Everything starts in `main.cpp`, which I deliberately kept as empty as possible:
+ 
+```cpp
+#include "TestAStarAlgorithm.h"
+ 
+int main()
+{
+    RunAllTests();
+    return 0;
+}
+```
+ 
+`RunAllTests()` lives in `TestAStarAlgorithm.cpp` and calls each scenario in sequence. Each scenario follows the same three-step pattern: build a grid using `GridBuilder`, create an `AStarAlgorithm` object, and call `Run()`:
+ 
+```cpp
+const GridBuilder builder;
+AStarAlgorithm aStar;
+aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+```
+ 
+Inside `AStarAlgorithm::Run()`, the work is delegated to the three subsystems in order:
+ 
+```cpp
+// 1. Validate
+if (!m_validator.IsValidGrid(grid)) return {};
+if (!m_validator.ValidateCell(grid, start, "Start")) return {};
+if (!m_validator.ValidateCell(grid, goal, "Goal")) return {};
+ 
+// 2. Print the grid
+m_printer.PrintGrid(grid, start, goal);
+ 
+// 3. Search
+const auto path = m_search.Search(grid, start, goal);
+ 
+// 4. Print the result
+m_printer.PrintPathCoordinates(path);
+m_printer.PrintGridWithPath(grid, path, start, goal);
+```
+ 
+`AStarAlgorithm` itself does not know how any of these steps work internally. It only knows what order to call them in. The actual validation logic is in `GridValidator`, the display logic is in `GridPrinter`, and the pathfinding is in `AStarSearch`. This is the Single Responsibility Principle working in practice.
+ 
+Inside `AStarSearch::Search()`, the algorithm maintains three vectors to track state across the search:
+ 
+```cpp
+std::vector<int>  bestG(total, INF);    // best cost to reach each node
+std::vector<int>  parent(total, -1);    // where each node was reached from
+std::vector<bool> closed(total, false); // whether a node has been fully processed
+```
+ 
+Nodes are explored in order of lowest `f = g + h` using a min-heap priority queue. When the goal is reached, `ReconstructPath()` walks the `parent` array backwards from goal to start and reverses it to produce the final path.
+
+### Test Scenarios
+ 
+#### Scenario 1: Default Grid
+ 
+The default `GridBuilder` constructor produces the original hardcoded 4x4 demo grid. `S` marks the start at `(0,0)` and `G` marks the goal at `(3,3)`. 
+```cpp
+GridBuilder::GridBuilder() : m_start{ 0, 0 } , m_goal{ 3, 3 }
+{
+  m_grid = {
+      { 0, 0, 0, 0 },
+      { 0, 1, 0, 1 },
+      { 0, 0, 1, 1 },
+      { 1, 0, 0, 0 }
+  };
+}
+```
+
+`m_start` and `m_goal` are passed as a `member initialiser list`. Instead of assigning values to member values inside the actual constructor, I initialise them directly before the body runs. This is the prefered method of assigning values in constuctors in modern C++. With a `member initialiser list`, the members are constructed with the correct values in a single step whereas if I was to assign them inside the body, I would be default constructing them and then immediately overwriting them (a two step process). I assign all constructor values like this.
+ 
+<!-- Add screenshot of Scenario 1 console output here -->
+
+#### Scenario 2: Manual Walls Grid
+ 
+A 5x5 grid with two rows of walls placed manually. The algorithm navigates down the left side and along the bottom to reach the goal.
+ 
+<!-- Add screenshot of Scenario 2 console output here -->
+
+#### Scenario 3: Auto-Generated Walls
+ 
+An 8x8 grid with approximately 30% of cells blocked randomly using `std::mt19937`. `std::mt19937` is a Mersenne Twister random number generator from the C++ standard library `<random>`. This is the modern C++ approach for random number generation compared to the C-style `rand()` function which has poor quality randomness and it is not thread safe as it relies on a global sate. The start and goal are always kept clear. The path changes on every run.
+ 
+<!-- Add screenshot of Scenario 3 console output here -->
+ 
+#### Scenario 4: Blocked Goal
+ 
+`GridBuilder::BlockedGoal` sets the goal cell to a wall. `GridValidator` catches this before the search even starts.
+ 
+```
+Error: Goal cell (3, 3) is blocked.
+```
+ 
+<!-- Add screenshot of Scenario 4 console output here -->
+
+#### Scenario 5: Unreachable Goal
+ 
+`GridBuilder::Unreachable` places a full wall column at column 1, cutting the grid in two. The goal is valid but no path exists.
+ 
+```
+No path found from (0, 0) to (3, 3).
+```
+ 
+<!-- Add screenshot of Scenario 5 console output here -->
+
 ## Limitations Encountered
+
+Looking back at the whole project development cycle there was a few issues or limitations I encountered. 
+
+### `Search()` is too long
+
+This is the most obvious one. The function handles data structure initialisation, the main loop, neighbour processing, and path reconstruction all in one place. That breaks the **Single Responsibility Principle** at the function level, which is something I applied carefully at the class level throughout the refactor but did not fully address inside `Search()` itself. The proper fix would be a `SearchContext` struct that bundles the algorithm's working state and exposes smaller methods (as Claude outlined to me earlier), but implementing that cleanly is significantly more complex and I made the call that it was not worth the added complexity for this module. The function is well commented and logically structured, which makes it acceptable as it stands, but it is something I am aware of.
+
+### Only Manhattan distance is Supported
+
+The heuristic is hardcoded as Manhattan distance, which works correctly for 4-direction grids. If I wanted to support diagonal movement the heuristic would need to change to Euclidean distance, and that would require changes in multiple places. A better design would make the heuristic a parameter, either as a `std::function` or a template, so the search could be configured without modifying the class itself. I initially thought about implementing diagonal movement at the start of the project but I decided to stick with 4-directional movement as it was easier to understand and explain and also allowed me to focus more on following modern C++ practices and understanding the A* algorithm.
+
+### Claude initially gave me redundant code that I removed which later became useful
+
+The `operator==` on `Cell` is a good example of this. When Claude first suggested it during the Week 4 refactor, I removed it because at that point nothing in the codebase was actually comparing two `Cell` values directly. Claude never flagged that it would become useful later. It was only when I introduced `GridBuilder` in Week 5, specifically the manual walls constructor that needed to check whether a wall position overlapped the start or goal, that I needed it. If I had been more forward-thinking about where the project was heading I might have kept it from the start. The lesson is that AI tools generate code for the current state of the project, not for where it is going. It also shows the importance of analysing AI code to make sure it is doing what you actually want it to do.
 
 ## Project Management
 
