@@ -1,6 +1,8 @@
 # AStarAlgorithm Project
 
-The A Star Algorithm (A* Algorithm) is a pathfinding and graph traversal algorithm used to find the shortest path between a start node and a goal node. It is commonly used by Google Maps and in many tower defense games.
+The A Star Algorithm (A*) is a pathfinding and graph traversal algorithm used to find the shortest path between a start node and a goal node on a grid. It is widely used in applications like Google Maps and tower defence games because it is both complete (it always finds a path if one exists) and optimal (the path it finds is the shortest).
+
+This blog documents my development of an A* implementation in C++ across five weeks. The project starts from a single monolithic class and is progressively refactored into a modular, multi-file design that follows the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) and modern C++17/20/23 standards. The final implementation consists of nine files, four focused classes, a `GridBuilder` for constructing test scenarios, and five distinct test cases demonstrating pathfinding, validation failure, and no-path conditions.
 
 ## Week 1
 
@@ -978,18 +980,23 @@ The dependency arrows from `GridValidator`, `GridPrinter`, `AStarSearch`, and `A
 
 `AStarSearch ..> OpenNode` is also carried over. `OpenNode` is used internally as the node type in the priority queue during `Search()`, but it is not a member of `AStarSearch`.
 
-New in Week 5:
+### What was achieved in Week 5
+- Introduced `TestAStarAlgorithm.h/.cpp` to separate all test scenarios from `main.cpp`, keeping `main` to three meaningful lines
+- Added `GridBuilder` with three constructors and two static factory methods to handle all grid construction in one place
+- Replaced raw `Grid` literals in calling code with named, self-documenting builder calls (`GridBuilder::BlockedGoal`, `GridBuilder::Unreachable`)
+- Added `operator==` to `Cell` using `= default` (C++20), enabling clean wall overlap checks and `S`/`G` marker rendering
+- Updated `GridPrinter::PrintGrid` and `PrintGridWithPath` to accept `start` and `goal` and render `S` and `G` markers with correct priority order
+- Used `std::mt19937` with `std::random_device` and `std::uniform_real_distribution` for correct modern C++ random number generation
+- Used `std::clamp` (C++17) to enforce a maximum wall density of `0.9` at the point of use
+- Produced a final updated UML class diagram reflecting all Week 5 additions and relationship changes
 
-- `TestAStarAlgorithm ..> GridBuilder`: each test function creates a `GridBuilder` locally to produce its grid, but `TestAStarAlgorithm` does not store one as a member.
-- `TestAStarAlgorithm ..> AStarAlgorithm`: each test function creates an `AStarAlgorithm` locally and calls `Run()`, again without storing it.
-- `main ..> TestAStarAlgorithm`: `main` calls `RunAllTests()` and nothing else. The dependency is at the function call level only.
-- `GridBuilder ..> Grid` and `GridBuilder ..> Cell`: `GridBuilder` constructs and returns these types through its accessors, and uses `Cell` in its constructor parameters for wall and start/goal positions. It stores `m_grid`, `m_start`, and `m_goal` as members, however the relationship is shown as dependency rather than composition because `Grid` and `Cell` are plain value types, not classes with their own lifecycles that `GridBuilder` is responsible for managing.
+---
 
-### A General Code review
+## A General Code review
 
 Beyond the specific class-level changes made each week, there are a number of smaller but important keywords and standard library tools used consistently throughout the codebase. This section looks at those in detail.
 
-#### `const`
+### `const`
 
 `const` appears in two distinct contexts in the project.
 
@@ -1022,7 +1029,7 @@ const int tentativeG = bestG[current.idx] + kMoveCost;
 
 Once `rows`, `cols`, or `startIdx` are calculated, they never change. Declaring them `const` makes that explicit. If I accidentally tried to reassign one of these the compiler would catch it immediately. It also makes the code easier to read, any variable without `const` is one that is expected to change, so `bestG`, `parent`, and `closed` standing out as non-`const` immediately signals that they are the mutable state of the algorithm.
 
-#### `constexpr`
+### `constexpr`
 
 `constexpr` goes one step further than `const`. Where `const` means a value will not change at runtime, `constexpr` means the value is known and fixed at **compile time**. The compiler can substitute the value directly wherever it is used, with no runtime cost at all.
 
@@ -1041,7 +1048,7 @@ Using `constexpr` here follows:
 - **P.5: Prefer compile-time checking to run-time checking**: if something can be known at compile time, it should be expressed that way
 - **Con.5: Use `constexpr` for values that can be computed at compile time**
 
-#### `std::numeric_limits<int>::max()`
+### `std::numeric_limits<int>::max()`
 
 ```cpp
 const int INF = std::numeric_limits::max();
@@ -1057,7 +1064,7 @@ It comes from `<limits>`, which is included at the top of `AStarSearch.cpp`:
 #include 
 ```
 
-#### `<cassert>` and `assert()`
+### `<cassert>` and `assert()`
 
 ```cpp
 #include 
@@ -1070,7 +1077,7 @@ assert(grid[start.r][start.c] == 0 && "Start cell is blocked");
 
 The reason I used `assert` here rather than `if`/`return` guards is that `AStarAlgorithm::Run()` already validates all inputs before calling `Search()`. By the time `Search()` is called, the grid and cells have already been checked. The `assert`s are not defensive runtime checks, they are a contract: "if you are calling this function, these conditions must already be true. If they are not, something has gone wrong in the calling code."
 
-#### `<unordered_set>` in `GridPrinter`
+### `<unordered_set>` in `GridPrinter`
 
 ```cpp
 #include 
@@ -1333,7 +1340,7 @@ The `operator==` on `Cell` is a good example of this. When Claude first suggeste
 
 ## Project Management
 
-The project was managed week by week, using the lab session checkpoints with Michelle to assess progress and decide what to focus on next. Each week I updated my github pages blog with changes That I had made and each week had a clear goal:
+The project was managed week by week, using the lab session checkpoints with Michelle to assess progress and decide what to focus on next. Each week I updated my Github Pages blog with changes That I had made and each week had a clear goal:
  
 - **Week 1**: get an initial project structure set up and display a basic grid.
 - **Week 2**: design the class structure using UML before writing more code.
@@ -1341,9 +1348,9 @@ The project was managed week by week, using the lab session checkpoints with Mic
 - **Week 4**: refactor everything into a proper modular OO design using Claude.
 - **Week 5**: extend with `GridBuilder`, test scenarios, visual improvements, and a final UML class diagram.
  
-This kind of iterative approach worked well for me. Getting a working implementation first in Week 3 and then refactoring in Week 4 was the right call for me. Getting the actual algorithm working first helped me to understand the whole concept of it and how the algorithm worked internally.. Having it working first meant the Week 4 refactor was about improving structure I already understood, not about figuring out the algorithm at the same time.
+This kind of iterative approach worked well for me. Getting a working implementation first in Week 3 and then refactoring in Week 4 was the right call for me. Getting the actual algorithm working first helped me to understand the whole concept of it and how the algorithm worked internally. Having it working first meant the Week 4 refactor was about improving structure I already understood, not about figuring out the algorithm at the same time.
  
-I Documented progress weekly in the README as I went so I did not have to reconstruct what I did or why at the end, I wrote down what I did and the end of each week so I wouldn't forget the technical aspects of what I worked on. That was probably the most useful habit of the project.
+I documented progress weekly in the README as I went so I did not have to reconstruct what I did or why at the end. I wrote down what I did and the end of each week so I wouldn't forget the technical aspects of what I worked on. That was probably the most useful habit of the project.
  
 Where I could have managed things better is in planning further ahead. Some decisions I made early, like removing `operator==` from `Cell`, had to be revisited later. A bit more thought at the start about where the project was heading might have avoided a few of those backwards steps. That said, for a project that evolved as much as this one did across the weeks, some of that was inevitable.
 
