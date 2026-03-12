@@ -960,6 +960,31 @@ It shows that even though `Search()` breaks *some* modern C++ practices, it is a
 <img style="max-width: 80%; height: auto;" alt="Final UML" src="images/FinalUML.svg" />
 </p>
 
+#### What Changed Since Week 4
+
+The Week 4 diagram had five classes: `AStarAlgorithm`, `GridValidator`, `GridPrinter`, `AStarSearch`, and the three supporting types `Grid`, `Cell`, and `OpenNode`. The Week 5 diagram adds three new entries: `GridBuilder`, `TestAStarAlgorithm`, and `main`. Several existing classes also gained new members.
+
+#### The Relationships
+
+##### Composition (`*--`)
+
+The three composition arrows from `AStarAlgorithm` to `GridValidator`, `GridPrinter`, and `AStarSearch` are unchanged from Week 4. Composition is the correct relationship here because `AStarAlgorithm` owns these three as private member variables (`m_validator`, `m_printer`, `m_search`). Their lifetimes are tied to the `AStarAlgorithm` instance, they are created when it is created and destroyed when it is destroyed.
+
+##### Dependency (`..>`)
+
+All other relationships are dependencies, shown as dashed arrows. A dependency means one class uses another in a method signature or internally, but does not own it as a member.
+
+The dependency arrows from `GridValidator`, `GridPrinter`, `AStarSearch`, and `AStarAlgorithm` to `Grid` and `Cell` are all carried over from Week 4. These types appear in method parameters and return types throughout the codebase but are not stored as members by any of those classes.
+
+`AStarSearch ..> OpenNode` is also carried over. `OpenNode` is used internally as the node type in the priority queue during `Search()`, but it is not a member of `AStarSearch`.
+
+New in Week 5:
+
+- `TestAStarAlgorithm ..> GridBuilder`: each test function creates a `GridBuilder` locally to produce its grid, but `TestAStarAlgorithm` does not store one as a member.
+- `TestAStarAlgorithm ..> AStarAlgorithm`: each test function creates an `AStarAlgorithm` locally and calls `Run()`, again without storing it.
+- `main ..> TestAStarAlgorithm`: `main` calls `RunAllTests()` and nothing else. The dependency is at the function call level only.
+- `GridBuilder ..> Grid` and `GridBuilder ..> Cell`: `GridBuilder` constructs and returns these types through its accessors, and uses `Cell` in its constructor parameters for wall and start/goal positions. It stores `m_grid`, `m_start`, and `m_goal` as members, however the relationship is shown as dependency rather than composition because `Grid` and `Cell` are plain value types, not classes with their own lifecycles that `GridBuilder` is responsible for managing.
+
 ### A General Code review
 
 Beyond the specific class-level changes made each week, there are a number of smaller but important keywords and standard library tools used consistently throughout the codebase. This section looks at those in detail.
