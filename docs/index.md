@@ -1189,7 +1189,7 @@ void TestManualWallsGrid()
 **Manual Walls Test Results**
  
 <p align="center">
-<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S2.png" />
+<img style="max-width: 80%; height: auto;" alt="Scenario 2" src="images/S2.png" />
 </p>
 
 #### Scenario 3: Auto-Generated Walls
@@ -1215,13 +1215,13 @@ void TestAutoGrid()
 **Auto-generated Walls Test Results**
  
 <p align="center">
-<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S3.1.png" />
+<img style="max-width: 80%; height: auto;" alt="Scenario 3.1" src="images/S3.1.png" />
 </p>
 
 Scenario 3 does not always return a successful path because of the randomness of the cell blocks but if I re-run the program, I can get successful paths.
 
 <p align="center">
-<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S3.2.png" />
+<img style="max-width: 80%; height: auto;" alt="Scenario 3.2" src="images/S3.2.png" />
 </p>
  
 #### Scenario 4: Blocked Goal
@@ -1251,7 +1251,7 @@ void TestBlockedGoal()
 **Blocked Goal Test Result**
  
 <p align="center">
-<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S4.png" />
+<img style="max-width: 80%; height: auto;" alt="Scenario 4" src="images/S4.png" />
 </p>
 
 #### Scenario 5: Unreachable Goal
@@ -1281,7 +1281,7 @@ void TestUnreachableGoal()
 **Unreachable Goal Test Result**
  
 <p align="center">
-<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S5.png" />
+<img style="max-width: 80%; height: auto;" alt="Scenario 5" src="images/S5.png" />
 </p>
 
 ## Limitations Encountered
