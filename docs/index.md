@@ -1139,20 +1139,90 @@ GridBuilder::GridBuilder() : m_start{ 0, 0 } , m_goal{ 3, 3 }
 ```
 
 `m_start` and `m_goal` are passed as a `member initialiser list`. Instead of assigning values to member values inside the actual constructor, I initialise them directly before the body runs. This is the prefered method of assigning values in constuctors in modern C++. With a `member initialiser list`, the members are constructed with the correct values in a single step whereas if I was to assign them inside the body, I would be default constructing them and then immediately overwriting them (a two step process). I assign all constructor values like this.
+
+**Default Test Case**
+
+```cpp
+void TestDefaultGrid()
+{
+  std::cout << "=== Scenario 1: Default grid ===\n\n";
+
+  const GridBuilder builder;
+  AStarAlgorithm aStar;
+  aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+
+  std::cout << '\n';
+}
+```
+
+ **Default Test Result**
  
-<!-- Add screenshot of Scenario 1 console output here -->
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S1.png" />
+</p>
 
 #### Scenario 2: Manual Walls Grid
  
 A 5x5 grid with two rows of walls placed manually. The algorithm navigates down the left side and along the bottom to reach the goal.
+
+**Manual Walls Test Case**
+
+```cpp
+void TestManualWallsGrid()
+{
+  std::cout << "=== Scenario 2: Manual walls grid ===\n\n";
+
+  const GridBuilder builder(5, 5, Cell{ 0, 0 }, Cell{ 4, 4 },
+                            {    // walls 
+                                { 1, 1 }, { 1, 2 }, { 1, 3 },
+                                { 2, 1 }, { 2, 2 }, { 2, 3 },
+                            }
+  );
+
+  AStarAlgorithm aStar;
+  aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+
+  std::cout << '\n';
+}
+```
+
+**Manual Walls Test Results**
  
-<!-- Add screenshot of Scenario 2 console output here -->
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S2.png" />
+</p>
 
 #### Scenario 3: Auto-Generated Walls
  
-An 8x8 grid with approximately 30% of cells blocked randomly using `std::mt19937`. `std::mt19937` is a Mersenne Twister random number generator from the C++ standard library `<random>`. This is the modern C++ approach for random number generation compared to the C-style `rand()` function which has poor quality randomness and it is not thread safe as it relies on a global sate. The start and goal are always kept clear. The path changes on every run.
+An 8x8 grid with approximately 30% (`0.3f`) of cells blocked randomly using `std::mt19937`. `std::mt19937` is a Mersenne Twister random number generator from the C++ standard library `<random>`. This is the modern C++ approach for random number generation compared to the C-style `rand()` function which has poor quality randomness and it is not thread safe as it relies on a global sate. The start and goal are always kept clear. The path changes on every run.
+
+**Auto-generated Walls Test Case**
+
+```cpp
+void TestAutoGrid()
+{
+  std::cout << "=== Scenario 3: Auto-generated walls (8x8, 30% density) ===\n\n";
+
+  const GridBuilder builder(8, 8, 0.3f);
+
+  AStarAlgorithm aStar;
+  aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+
+  std::cout << '\n';
+}
+```
+
+**Auto-generated Walls Test Results**
  
-<!-- Add screenshot of Scenario 3 console output here -->
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S3.1.png" />
+</p>
+
+Scenario 3 does not always return a successful path because of the randomness of the cell blocks but if I re-run the program, I can get successful paths.
+
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S3.2.png" />
+</p>
  
 #### Scenario 4: Blocked Goal
  
@@ -1161,8 +1231,28 @@ An 8x8 grid with approximately 30% of cells blocked randomly using `std::mt19937
 ```
 Error: Goal cell (3, 3) is blocked.
 ```
+
+**Blocked Goal Test Case**
+
+```cpp
+void TestBlockedGoal()
+{
+  std::cout << "=== Scenario 4: Blocked goal ===\n\n";
+
+  const GridBuilder builder = GridBuilder::BlockedGoal(4, 4);
+
+  AStarAlgorithm aStar;
+  aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+
+  std::cout << '\n';
+}
+```
+
+**Blocked Goal Test Result**
  
-<!-- Add screenshot of Scenario 4 console output here -->
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S4.png" />
+</p>
 
 #### Scenario 5: Unreachable Goal
  
@@ -1171,8 +1261,28 @@ Error: Goal cell (3, 3) is blocked.
 ```
 No path found from (0, 0) to (3, 3).
 ```
+
+**Unreachable Goal Test Case**
+
+```cpp
+void TestUnreachableGoal()
+{
+  std::cout << "=== Scenario 5: Unreachable goal ===\n\n";
+
+  const GridBuilder builder = GridBuilder::Unreachable(4, 4);
+
+  AStarAlgorithm aStar;
+  aStar.Run(builder.GetGrid(), builder.GetStart(), builder.GetGoal());
+
+  std::cout << '\n';
+}
+```
+
+**Unreachable Goal Test Result**
  
-<!-- Add screenshot of Scenario 5 console output here -->
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Scenario 1" src="images/S5.png" />
+</p>
 
 ## Limitations Encountered
 
