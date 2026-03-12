@@ -1192,4 +1192,28 @@ The `operator==` on `Cell` is a good example of this. When Claude first suggeste
 
 ## Project Management
 
+The project was managed week by week, using the lab session checkpoints with Michelle to assess progress and decide what to focus on next. Each week I updated my github pages blog with changes That I had made and each week had a clear goal:
+ 
+- **Week 1**: get an initial project structure set up and display a basic grid.
+- **Week 2**: design the class structure using UML before writing more code.
+- **Week 3**: implement validation, the Manhattan distance calculation, and the full A* search.
+- **Week 4**: refactor everything into a proper modular OO design using Claude.
+- **Week 5**: extend with `GridBuilder`, test scenarios, visual improvements, and a final UML class diagram.
+ 
+This kind of iterative approach worked well for me. Getting a working implementation first in Week 3 and then refactoring in Week 4 was the right call for me. Getting the actual algorithm working first helped me to understand the whole concept of it and how the algorithm worked internally.. Having it working first meant the Week 4 refactor was about improving structure I already understood, not about figuring out the algorithm at the same time.
+ 
+I Documented progress weekly in the README as I went so I did not have to reconstruct what I did or why at the end, I wrote down what I did and the end of each week so I wouldn't forget the technical aspects of what I worked on. That was probably the most useful habit of the project.
+ 
+Where I could have managed things better is in planning further ahead. Some decisions I made early, like removing `operator==` from `Cell`, had to be revisited later. A bit more thought at the start about where the project was heading might have avoided a few of those backwards steps. That said, for a project that evolved as much as this one did across the weeks, some of that was inevitable.
+
 ## Reflection
+
+Looking back at where this project started, a single `AStarAlgorithm` class doing everything in one file, and where it ended up, the improvement is pretty clear. The final codebase has nine files, four focused classes, a clean entry point, and five distinct test scenarios. More importantly, I understand why each of those things exists. I make use of concepts such as `const`, `constructors`, and `operator overloading` that we learned throughout the module by implementing them into the A* algorithm and identifying why they were being used by AI code.
+ 
+The biggest learning for me was the refactor in Week 4. Before that, I knew what the code was doing but I had not thought carefully about how it was structured. Going through the process of splitting `GridValidator`, `GridPrinter`, `AStarSearch`, and `AStarAlgorithm` into separate responsibilities forced me to think about what each piece of code actually owns and why. That way of thinking carries forward to any future project.
+ 
+Using Claude throughout the project was genuinely useful but required more critical engagement than I expected. It was not a case of asking a question and copying the answer. The `static named constructors` example is the clearest illustration of that. Claude gave me a label that sounded correct but was technically wrong, and it took my own understanding of what a constructor actually is to catch it. The same applies to the `operator==` situation, where Claude generated code I removed because I did not see a use for it, and it only became useful later. AI tools are good at generating code that follows patterns, but they do not always think ahead about how a project will evolve. That judgement still has to come from me.
+ 
+What I would do differently is introduce `GridBuilder` earlier. In Week 3 and much of Week 4, grids were defined as raw literals wherever they were needed. Having a dedicated class for grid construction from the start would have made the test scenarios cleaner from the beginning and avoided the raw data sitting in `main.cpp` for as long as it did.
+ 
+Overall this was a worthwhile project. A* is a more involved algorithm than it looks from the outside, and getting it working correctly, understanding each part of it, and then building a clean structure around it gave me a much better sense of what modern C++ design actually looks like in practice.
