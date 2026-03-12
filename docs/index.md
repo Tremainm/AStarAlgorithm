@@ -954,6 +954,12 @@ The length of Search is a known limitation worth acknowledging in your blog rath
 
 It shows that even though `Search()` breaks *some* modern C++ practices, it is also important to think about making sure procedural algorithms have enough clarity so people can understand the code. Since `Search()` is well commented, the variable names make sense, and sections are split up based on what logic they implement, it is perfectly acceptable to keep it as a long function.
 
+### Final UML Class Diagram
+
+<p align="center">
+<img style="max-width: 80%; height: auto;" alt="Final UML" src="images/FinalUML.svg" />
+</p>
+
 ### A General Code review
 
 Beyond the specific class-level changes made each week, there are a number of smaller but important keywords and standard library tools used consistently throughout the codebase. This section looks at those in detail.
@@ -1327,3 +1333,5 @@ Using Claude throughout the project was genuinely useful but required more criti
 What I would do differently is introduce `GridBuilder` earlier. In Week 3 and much of Week 4, grids were defined as raw literals wherever they were needed. Having a dedicated class for grid construction from the start would have made the test scenarios cleaner from the beginning and avoided the raw data sitting in `main.cpp` for as long as it did.
  
 Overall this was a worthwhile project. A* is a more involved algorithm than it looks from the outside, and getting it working correctly, understanding each part of it, and then building a clean structure around it gave me a much better sense of what modern C++ design actually looks like in practice.
+
+## References
