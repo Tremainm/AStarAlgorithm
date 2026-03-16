@@ -1031,7 +1031,7 @@ Once `rows`, `cols`, or `startIdx` are calculated, they never change. Declaring 
 
 ### `constexpr`
 
-`constexpr` goes one step further than `const`. Where `const` means a value will not change at runtime, `constexpr` means the value is known and fixed at **compile time**. The compiler can substitute the value directly wherever it is used, with no runtime cost at all.
+`constexpr` goes one step further than `const`. Where `const` means a value will not change at runtime, `constexpr` means the value is known and fixed at **compile time**. The compiler can substitute the value directly wherever it is used, with no runtime cost at all. `constexpr` is used instead of the C-style `# define`.
 
 In `Search()` there are three `constexpr` declarations:
 
@@ -1099,6 +1099,58 @@ const bool onPath = pathSet.contains(r * cols + c);
 ```
 
 `contains()` was introduced in **C++20** as a cleaner alternative to the older pattern of `find() != end()`. Both do the same thing but `contains()` reads as plain English.
+
+### Range-based `for` Loops
+
+Range-based `for` loops are used throughout the project wherever I just need to visit every element in a container. They were introduced in C++11 and replace the older C-style index loop in most situations.
+
+The clearest example is in `GridPrinter::PrintGrid()`:
+```cpp
+for (const auto& row : grid)
+{
+    for (const int cell : row)
+    {
+        std::cout << (cell == 0 ? '.' : '#') << ' ';
+    }
+    std::cout << '\n';
+}
+```
+
+The C-style version of the same loop would be:
+```cpp
+for (int r = 0; r < (int)grid.size(); ++r)
+{
+    for (int c = 0; c < (int)grid[r].size(); ++c)
+    {
+        std::cout << (grid[r][c] == 0 ? '.' : '#') << ' ';
+    }
+    std::cout << '\n';
+}
+```
+
+The range-based version is shorter and clearer. There is no index variable to manage, no `.size()` call that needs casting to `int` to avoid signed/unsigned warnings, and no risk of an off-by-one error in the condition (Crowd Strike memory leak bug was similar to this). `for (const auto& row : grid)` just reads as "for each row in the grid" which is exactly what it is doing.
+
+The same pattern is used in `PrintPathCoordinates()` and in `GridBuilder`'s manual walls constructor:
+```cpp
+for (const auto& p : path)
+{
+    std::cout << "(" << p.r << ", " << p.c << ") ";
+}
+```
+```cpp
+for (const auto& wall : walls)
+{
+    if (wall == m_start || wall == m_goal) continue;
+    m_grid[wall.r][wall.c] = 1;
+}
+```
+
+I use `const auto&` rather than just `auto` so the element is accessed by reference instead of being copied, and `const` so the loop body cannot accidentally modify it. For the `cell` variable in `PrintGrid()` I use `const int` directly since it is a primitive type and a reference would not offer anything over a copy.
+
+The C-style index loop is still used where the index itself is needed. In `AStarSearch::Search()` the direction loop needs `k` to index into `dr[k]` and `dc[k]`, and in `PrintGridWithPath()` the row and column indices are needed to compute the flattened cell index `r * cols + c`. A range-based loop would not give me access to those values, so the index loop is the right choice there.
+
+This follows:
+- **ES.71: Prefer a range-`for`-statement to a `for`-statement when there is a choice**
 
 ---
 
@@ -1367,3 +1419,17 @@ What I would do differently is introduce `GridBuilder` earlier. In Week 3 and mu
 Overall this was a worthwhile project. A* is a more involved algorithm than it looks from the outside, and getting it working correctly, understanding each part of it, and then building a clean structure around it gave me a much better sense of what modern C++ design actually looks like in practice.
 
 ## References
+
+[1] GeeksforGeeks, "A* Search Algorithm", GeeksforGeeks. [Online]. Available: https://www.geeksforgeeks.org/dsa/a-search-algorithm/.
+
+[2] GeeksforGeeks, "Unified Modeling Language (UML) Class Diagrams", GeeksforGeeks. [Online]. Available: https://www.geeksforgeeks.org/system-design/unified-modeling-language-uml-class-diagrams/.
+
+[3] Visual Paradigm, "UML Aggregation vs Composition", Visual Paradigm. [Online]. Available: https://www.visual-paradigm.com/guide/uml-unified-modeling-language/uml-aggregation-vs-composition/.
+
+[4] H. Sutter and B. Stroustrup, "C++ Core Guidelines", GitHub. [Online]. Available: https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines.
+
+[5] Microsoft, "C++ Language Reference", Microsoft. [Online]. Available: https://learn.microsoft.com/en-us/cpp/cpp/cpp-language-reference?view=msvc-170.
+
+[6] Claude, "Claude", Claude. [Online]. Available: https://claude.ai.
+
+[7] ChatGPT, "ChatGPT", ChatGPT. [Online]. Available: https://chatgpt.com/.
