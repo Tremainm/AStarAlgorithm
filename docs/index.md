@@ -968,11 +968,11 @@ The Week 4 diagram had five classes: `AStarAlgorithm`, `GridValidator`, `GridPri
 
 #### The Relationships
 
-##### Composition (`*--`)
+##### **Composition (`*--`)**
 
 The three composition arrows from `AStarAlgorithm` to `GridValidator`, `GridPrinter`, and `AStarSearch` are unchanged from Week 4. Composition is the correct relationship here because `AStarAlgorithm` owns these three as private member variables (`m_validator`, `m_printer`, `m_search`). Their lifetimes are tied to the `AStarAlgorithm` instance, they are created when it is created and destroyed when it is destroyed.
 
-##### Dependency (`..>`)
+##### **Dependency (`..>`)**
 
 All other relationships are dependencies, shown as dashed arrows. A dependency means one class uses another in a method signature or internally, but does not own it as a member.
 
@@ -996,7 +996,7 @@ The dependency arrows from `GridValidator`, `GridPrinter`, `AStarSearch`, and `A
 
 Beyond the specific class-level changes made each week, there are a number of smaller but important keywords and standard library tools used consistently throughout the codebase. This section looks at those in detail.
 
-### `const`
+### **`const`**
 
 `const` appears in two distinct contexts in the project.
 
@@ -1029,7 +1029,7 @@ const int tentativeG = bestG[current.idx] + kMoveCost;
 
 Once `rows`, `cols`, or `startIdx` are calculated, they never change. Declaring them `const` makes that explicit. If I accidentally tried to reassign one of these the compiler would catch it immediately. It also makes the code easier to read, any variable without `const` is one that is expected to change, so `bestG`, `parent`, and `closed` standing out as non-`const` immediately signals that they are the mutable state of the algorithm.
 
-### `constexpr`
+### **`constexpr`**
 
 `constexpr` goes one step further than `const`. Where `const` means a value will not change at runtime, `constexpr` means the value is known and fixed at **compile time**. The compiler can substitute the value directly wherever it is used, with no runtime cost at all. `constexpr` is used instead of the C-style `# define`.
 
@@ -1048,7 +1048,7 @@ Using `constexpr` here follows:
 - **P.5: Prefer compile-time checking to run-time checking**: if something can be known at compile time, it should be expressed that way
 - **Con.5: Use `constexpr` for values that can be computed at compile time**
 
-### `std::numeric_limits<int>::max()`
+### **`std::numeric_limits<int>::max()`**
 
 ```cpp
 const int INF = std::numeric_limits::max();
@@ -1064,7 +1064,7 @@ It comes from `<limits>`, which is included at the top of `AStarSearch.cpp`:
 #include 
 ```
 
-### `<cassert>` and `assert()`
+### **`<cassert>` and `assert()`**
 
 ```cpp
 #include 
@@ -1077,7 +1077,7 @@ assert(grid[start.r][start.c] == 0 && "Start cell is blocked");
 
 The reason I used `assert` here rather than `if`/`return` guards is that `AStarAlgorithm::Run()` already validates all inputs before calling `Search()`. By the time `Search()` is called, the grid and cells have already been checked. The `assert`s are not defensive runtime checks, they are a contract: "if you are calling this function, these conditions must already be true. If they are not, something has gone wrong in the calling code."
 
-### `<unordered_set>` in `GridPrinter`
+### **`<unordered_set>` in `GridPrinter`**
 
 ```cpp
 #include 
@@ -1100,7 +1100,7 @@ const bool onPath = pathSet.contains(r * cols + c);
 
 `contains()` was introduced in **C++20** as a cleaner alternative to the older pattern of `find() != end()`. Both do the same thing but `contains()` reads as plain English.
 
-### Range-based `for` Loops
+### **Range-based `for` Loops**
 
 Range-based `for` loops are used throughout the project wherever I just need to visit every element in a container. They were introduced in C++11 and replace the older C-style index loop in most situations.
 
